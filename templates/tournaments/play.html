@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 900px;">
+  <h2 class="mb-3">Play – {{ tournament.name }}</h2>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} py-2">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  {% if match %}
+    <p class="text-muted mb-3">
+      Round {{ match.round_number }} / {{ tournament.total_rounds }} ·
+      Match {{ match.index_in_round }}
+    </p>
+
+    <div class="row mb-3">
+      <div class="col-md-6 mb-3">
+        <div class="card bg-dark text-light h-100">
+          <img src="{{ match.competitor1.image.url }}" class="card-img-top" alt="{{ match.competitor1.name }}">
+          <div class="card-body">
+            <h5>{{ match.competitor1.name|default:"Competitor 1" }}</h5>
+            <p class="text-muted mb-1">Votes: {{ match.votes_for_competitor1 }}</p>
+
+            {% if user.is_authenticated %}
+              <form method="post" action="">
+                {% csrf_token %}
+                <input type="hidden" name="choice" value="1">
+                <button type="submit" class="btn btn-primary w-100">
+                  {% if user_vote and user_vote.choice == "1" %}
+                    You voted this
+                  {% else %}
+                    Vote for this
+                  {% endif %}
+                </button>
+              </form>
+            {% else %}
+              <small class="text-muted">Login to vote.</small>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 mb-3">
+        <div class="card bg-dark text-light h-100">
+          <img src="{{ match.competitor2.image.url }}" class="card-img-top" alt="{{ match.competitor2.name }}">
+          <div class="card-body">
+            <h5>{{ match.competitor2.name|default:"Competitor 2" }}</h5>
+            <p class="text-muted mb-1">Votes: {{ match.votes_for_competitor2 }}</p>
+
+            {% if user.is_authenticated %}
+              <form method="post" action="">
+                {% csrf_token %}
+                <input type="hidden" name="choice" value="2">
+                <button type="submit" class="btn btn-success w-100">
+                  {% if user_vote and user_vote.choice == "2" %}
+                    You voted this
+                  {% else %}
+                    Vote for this
+                  {% endif %}
+                </button>
+              </form>
+            {% else %}
+              <small class="text-muted">Login to vote.</small>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if user == tournament.created_by %}
+      <form method="post" action="{% url 'tournaments:finish_match' tournament.pk match.pk %}" class="mb-3">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-warning">
+          Close this match & move forward
+        </button>
+      </form>
+      <small class="text-muted">
+        This picks the winner based on votes. In case of tie, the left competitor wins.
+      </small>
+    {% endif %}
+  {% else %}
+    <p class="text-muted">
+      No active match. Tournament may have finished.
+      <a href="{% url 'tournaments:summary' tournament.pk %}">View summary</a>
+    </p>
+  {% endif %}
+
+  <div class="mt-4">
+    <a href="{% url 'tournaments:tournament_detail' tournament.pk %}" class="btn btn-secondary">
+      ← Back to tournament
+    </a>
+  </div>
+</div>
+{% endblock %}

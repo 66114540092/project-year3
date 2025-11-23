@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% load form_extras %}
+
+{% block title %}{{ tournament.name }} · BattleHub{% endblock %}
+
+{% block content %}
+  <h1 class="bh-page-title">{{ tournament.name }}</h1>
+  <p class="bh-page-subtitle">
+    Status: {{ tournament.get_status_display|default:tournament.status|capfirst }} ·
+    Created {{ tournament.created_at|date:"Y-m-d H:i" }}
+  </p>
+
+  <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+    {% if tournament.thumbnail %}
+      <img src="{{ tournament.thumbnail.url }}" alt="{{ tournament.name }} thumbnail" style="height:180px;border-radius:8px;object-fit:cover;border:1px solid #ddd;">
+    {% endif %}
+
+    {% if user == tournament.created_by %}
+      {% if tournament.status != 'finished' %}
+        <a href="{% url 'tournaments:tournament_update' tournament.pk %}" class="bh-btn bh-btn-sm">Edit</a>
+      {% else %}
+        <span style="font-size:0.9rem;color:#666;">(Finished — editing disabled)</span>
+      {% endif %}
+      <form method="post" action="{% url 'tournaments:tournament_delete' tournament.pk %}" style="display:inline; margin-left:8px;">
+        {% csrf_token %}
+        <button type="submit" class="bh-btn bh-btn-sm bh-btn-danger">Delete</button>
+      </form>
+    {% endif %}
+  </div>
+
+  <section class="bh-match-layout">
+    <div class="bh-match-card">
+      <h2 class="bh-section-title">Tournament status</h2>
+
+      <p>Current status: <strong>{{ tournament.get_status_display|default:tournament.status|capfirst }}</strong></p>
+      {% if tournament.status == 'open' %}
+        <p><a href="{% url 'tournaments:play' tournament.pk %}">Go to Play</a></p>
+      {% elif tournament.status == 'finished' %}
+        <p><a href="{% url 'tournaments:summary' tournament.pk %}">View summary</a></p>
+      {% endif %}
+
+    </div>
+
+    <div class="bh-match-card">
+      <h2 class="bh-section-title">Participants</h2>
+
+      {% if competitors %}
+        <div style="display:flex; flex-direction:column; gap:.65rem; margin-bottom:.9rem;">
+          {% for p in competitors %}
+            <div style="display:flex; align-items:center; gap:.7rem;">
+              {% if p.image %}
+                <img src="{{ p.image.url }}" alt="{{ p.name }}"
+                     style="width:44px;height:44px;object-fit:cover;border-radius:0.9rem;border:1px solid rgba(55,65,81,0.9);">
+              {% else %}
+                <div style="width:44px;height:44px;border-radius:0.9rem;background:#020617;border:1px dashed rgba(55,65,81,0.9);display:flex;align-items:center;justify-content:center;font-size:.75rem;color:var(--text-soft);">
+                  No image
+                </div>
+              {% endif %}
+              <div>
+                <div class="bh-contestant-name" style="font-size:.9rem;">{{ p.name }}</div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="bh-empty">No participants yet.</p>
+      {% endif %}
+
+      {% if user == tournament.created_by and tournament.status == 'draft' %}
+        <p><a href="{% url 'tournaments:add_competitors' tournament.pk %}">Add participants</a></p>
+      {% endif %}
+
+      <div class="bh-comments">
+        <h2 class="bh-section-title">Comments</h2>
+
+        {% if comments %}
+          {% for c in comments %}
+            <article class="bh-comment-item">
+              <div class="bh-comment-meta">
+                <span>{{ c.user.username }}</span>
+                <span>{{ c.created_at|date:"Y-m-d H:i" }}</span>
+              </div>
+              <div class="bh-comment-text">{{ c.text }}</div>
+            </article>
+          {% endfor %}
+        {% else %}
+          <p class="bh-empty">No comments yet.</p>
+        {% endif %}
+
+        {% if user.is_authenticated %}
+          <form method="post" action="{% url 'tournaments:add_comment' tournament.pk %}" style="margin-top:.7rem;">
+            {% csrf_token %}
+            <div class="bh-form-group">
+              {{ comment_form.text|add_class:"bh-textarea" }}
+            </div>
+            <button type="submit" name="add_comment" class="bh-btn bh-btn-sm">
+              Post comment
+            </button>
+          </form>
+        {% else %}
+          <p class="bh-empty">
+            Log in to comment.
+          </p>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <div style="margin-top:1.3rem;">
+    <a href="{% url 'tournaments:tournament_list' %}" class="bh-nav-link">← Back to list</a>
+  </div>
+{% endblock %}

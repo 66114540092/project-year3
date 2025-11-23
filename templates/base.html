@@ -1,0 +1,64 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}BattleHub{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+  <header class="bh-nav">
+    <div class="bh-nav-inner">
+      <a href="{% url 'tournaments:tournament_list' %}" class="bh-brand">
+        <span class="bh-brand-icon">🏆</span>
+        <span>BattleHub</span>
+      </a>
+
+      <nav class="bh-nav-links">
+        <a href="{% url 'tournaments:tournament_list' %}"
+           class="bh-nav-link bh-nav-link-active">Tournaments</a>
+
+        {% if user.is_authenticated %}
+          <a href="{% url 'tournaments:tournament_create' %}" class="bh-btn bh-btn-sm">
+            + Create
+          </a>
+
+          <div class="bh-nav-user">
+            <span class="bh-nav-username">Hi, {{ user.username }}</span>
+            <form method="post" action="{% url 'accounts:logout' %}">
+              {% csrf_token %}
+              <button type="submit" class="bh-btn bh-btn-outline bh-btn-sm">Logout</button>
+            </form>
+          </div>
+        {% else %}
+          <a href="{% url 'accounts:login' %}" class="bh-btn bh-btn-outline bh-btn-sm">
+            Login
+          </a>
+          <a href="{% url 'accounts:signup' %}" class="bh-btn bh-btn-sm">
+            Sign up
+          </a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main class="bh-main">
+    {% if messages %}
+      <div class="bh-messages">
+        {% for message in messages %}
+          <div class="bh-message bh-message-{{ message.tags|default:'info' }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="bh-footer">
+    © 2025 BattleHub — Tournament Voting Demo
+  </footer>
+</body>
+</html>

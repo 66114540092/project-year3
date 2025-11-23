@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Summary · {{ tournament.name }}{% endblock %}
+
+{% block content %}
+  <h1 class="bh-page-title">Summary — {{ tournament.name }}</h1>
+  <p class="bh-page-subtitle">
+    Champion: {{ champion.name if champion }} · Total rounds: {{ rounds|length }}
+  </p>
+
+  <section class="bh-card">
+    {% if champion %}
+      <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1.2rem;">
+        {% if champion.image %}
+          <img src="{{ champion.image.url }}" alt="{{ champion.name }}"
+               style="width:70px;height:70px;border-radius:1.25rem;object-fit:cover;border:2px solid rgba(250,204,21,0.9);box-shadow:0 0 25px rgba(250,204,21,0.6);">
+        {% endif %}
+        <div>
+          <div style="font-size:.78rem;color:var(--text-soft);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.1rem;">Champion</div>
+          <div style="font-size:1.1rem;font-weight:700;color:var(--text-strong);">{{ champion.name }}</div>
+        </div>
+      </div>
+    {% endif %}
+
+    {% for round in rounds %}
+      <div class="bh-summary-round">
+        <div style="font-size:.85rem;font-weight:600;color:var(--text-soft);margin-bottom:.3rem;">
+          Round {{ forloop.counter }}
+        </div>
+        {% for match in round %}
+          <div class="bh-summary-match">
+            <div style="display:flex; justify-content:space-between;">
+              <span>{{ match.a_name }} vs {{ match.b_name }}</span>
+              <span>Winner: <b>{{ match.winner_name }}</b></span>
+            </div>
+            <div style="font-size:.8rem;color:var(--text-soft);margin-top:.2rem;">
+              Votes — A: {{ match.votes_a }} · B: {{ match.votes_b }}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+
+    <a href="{% url 'tournaments:tournament_detail' tournament.pk %}" class="bh-nav-link">
+      ← Back to tournament
+    </a>
+  </section>
+{% endblock %}

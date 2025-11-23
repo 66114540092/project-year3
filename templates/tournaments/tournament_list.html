@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Tournaments · BattleHub{% endblock %}
+
+{% block content %}
+  <div class="bh-list-header">
+    <div>
+      <h1 class="bh-page-title">Tournaments</h1>
+      <p class="bh-page-subtitle">
+        Browse tournaments and pick one to vote.
+      </p>
+    </div>
+
+    {% if user.is_authenticated %}
+      <a href="{% url 'tournaments:tournament_create' %}" class="bh-btn">
+        + Create tournament
+      </a>
+    {% endif %}
+  </div>
+
+  {% if tournaments %}
+    <div class="bh-grid">
+      {% for t in tournaments %}
+        <article class="bh-card">
+          <div class="bh-card-header" style="display:flex;gap:.75rem;align-items:center;">
+            {% if t.thumbnail %}
+              <img src="{{ t.thumbnail.url }}" alt="{{ t.name }} thumb" style="width:120px;height:120px;object-fit:cover;border-radius:6px;border:1px solid #eee;">
+            {% endif %}
+            <div style="flex:1;">
+              <h2 class="bh-card-title">{{ t.name }}</h2>
+              <div style="font-size: 0.8rem; color: var(--text-soft);">
+                Created {{ t.created_at|date:"Y-m-d H:i" }}
+              </div>
+            </div>
+            <span class="bh-badge {% if t.status == 'open' %}bh-badge-green{% else %}bh-badge-red{% endif %}">
+              {{ t.get_status_display|default:t.status|capfirst }}
+            </span>
+          </div>
+
+          {% if t.description %}
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 0.7rem;">
+              {{ t.description|truncatechars:140 }}
+            </p>
+          {% endif %}
+
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:.75rem;">
+            <div style="font-size:0.8rem; color:var(--text-soft);">
+              Rounds: {{ t.total_rounds }}<br>
+              Contestants: {{ t.competitors.count|default:"2" }}
+            </div>
+
+            <a href="{% url 'tournaments:tournament_detail' t.pk %}" class="bh-btn bh-btn-sm">
+              View
+            </a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="bh-card bh-empty">
+      No tournaments yet.
+      {% if user.is_authenticated %}
+        Create your first one with the button on the top right.
+      {% endif %}
+    </div>
+  {% endif %}
+{% endblock %}

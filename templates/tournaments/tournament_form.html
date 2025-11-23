@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% load form_extras %}
+{% block title %}{{ form.instance.pk|yesno:"Edit tournament,Create tournament" }} · BattleHub{% endblock %}
+
+{% block content %}
+  <h1 class="bh-page-title">
+    {% if form.instance.pk %}Edit tournament{% else %}Create tournament{% endif %}
+  </h1>
+  <p class="bh-page-subtitle">
+    Define basic info and settings. Bracket & images will be handled after this.
+  </p>
+
+  <section class="bh-card">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="bh-grid bh-grid-2">
+        <div>
+          <div class="bh-form-group">
+            <label class="bh-label">Name</label>
+            {{ form.name|add_class:"bh-input" }}
+          </div>
+
+          <div class="bh-form-group">
+            <label class="bh-label">Description</label>
+            {{ form.description|add_class:"bh-textarea" }}
+          </div>
+
+          <div class="bh-form-group">
+            <label class="bh-label">Category</label>
+            {{ form.category|add_class:"bh-select" }}
+          </div>
+
+          <div class="bh-form-group">
+            <label class="bh-label">Language</label>
+            {{ form.language|add_class:"bh-select" }}
+          </div>
+        </div>
+
+        <div>
+          <div class="bh-form-group">
+            <label class="bh-label">Bracket size (choices: 2,4,8,16)</label>
+            {% if form.bracket_size.field.disabled %}
+              <div class="bh-readonly">{{ form.instance.bracket_size }}</div>
+            {% else %}
+              {{ form.bracket_size|add_class:"bh-input" }}
+            {% endif %}
+          </div>
+
+          <div class="bh-form-group">
+            <label class="bh-label">Voting duration per round (seconds, optional)</label>
+            {% if form.voting_duration_seconds.field.disabled %}
+              <div class="bh-readonly">{{ form.instance.voting_duration_seconds }} seconds</div>
+            {% else %}
+              {{ form.voting_duration_seconds|add_class:"bh-input" }}
+            {% endif %}
+          </div>
+
+          <div class="bh-form-group">
+            <label class="bh-label">Thumbnail (optional)</label>
+            {{ form.thumbnail|add_class:"bh-input" }}
+          </div>
+        </div>
+      </div>
+
+      <div class="bh-form-footer">
+        <a href="{% url 'tournaments:tournament_list' %}" class="bh-btn bh-btn-outline">
+          Cancel
+        </a>
+        <button type="submit" class="bh-btn">
+          Save
+        </button>
+      </div>
+    </form>
+  </section>
+{% endblock %}
