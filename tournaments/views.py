@@ -414,8 +414,8 @@ def summary(request, pk):
             'round_number': m.round_number,
             'competitor1_name': m.competitor1.name if m.competitor1 else '?',
             'competitor2_name': m.competitor2.name if m.competitor2 else '?',
-            'votes1': m.votes_for_competitor1,
-            'votes2': m.votes_for_competitor2,
+            'votes1': m.votes_for_competitor1(),
+            'votes2': m.votes_for_competitor2(),
             'winner_name': m.winner.name if m.winner else None,
             'is_finished': m.is_finished,
         })

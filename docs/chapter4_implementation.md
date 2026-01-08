@@ -1,396 +1,129 @@
-# Chapter 4: System Development (Implementation Results)
-
-## 4.1 Implementation of System Architecture
-
-### Docker Compose Configuration
-
-The production deployment utilizes Docker Compose to orchestrate three containerized services:
-
-```yaml
-services:
-  # PostgreSQL Database
-  db:
-    image: postgres:15-alpine
-    container_name: battlehub_db
-    environment:
-      POSTGRES_DB: battlehub
-      POSTGRES_USER: battlehub_user
-      POSTGRES_PASSWORD: battlehub_pass
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U battlehub_user"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  # Django Application with Gunicorn
-  web:
-    build: .
-    container_name: battlehub_web
-    command: >
-      sh -c "python manage.py migrate &&
-             python manage.py collectstatic --noinput &&
-             gunicorn --bind 0.0.0.0:8000 battlehub.wsgi:application"
-    environment:
-      - DEBUG=False
-      - POSTGRES_DB=battlehub
-      - POSTGRES_HOST=db
-    depends_on:
-      db:
-        condition: service_healthy
-
-  # Nginx Reverse Proxy
-  nginx:
-    image: nginx:alpine
-    container_name: battlehub_nginx
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - static_volume:/app/staticfiles:ro
-      - media_volume:/app/media:ro
-```
-
-### Django Settings Configuration (settings.py)
-
-**Environment-Based Database Selection:**
-
-```python
-from decouple import config
-
-# Database - PostgreSQL for production, SQLite for development
-if config('POSTGRES_DB', default=None):
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": config('POSTGRES_DB'),
-            "USER": config('POSTGRES_USER'),
-            "PASSWORD": config('POSTGRES_PASSWORD'),
-            "HOST": config('POSTGRES_HOST', default='db'),
-            "PORT": config('POSTGRES_PORT', default='5432'),
-        }
-    }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
-```
-
-**Production Security Settings:**
-
-```python
-DEBUG = config('DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
-
-# WhiteNoise for static files
-MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",  # Serves static files efficiently
-    # ... other middleware
-]
-
-STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-```
-
-### Deployment Process
-
-1. **Build & Start:** `docker-compose up --build -d`
-2. **Database Migration:** Automatically runs via container command
-3. **Static Files:** Collected automatically via `collectstatic`
-4. **Access:** Application available at `http://localhost:80`
+บทที่ 4 การพัฒนาระบบ (ผลการดำเนินงาน)
 
----
 
-## 4.2 Implementation of User Interface
+4.1 การติดตั้งสถาปัตยกรรมระบบ
 
-### 4.2.1 Homepage - Tournament Grid View
+การตั้งค่า Docker Compose
 
-*(Screenshot placeholder)*
+ระบบใช้ Docker Compose ในการจัดการ 3 services หลัก ได้แก่ db (PostgreSQL), web (Django/Gunicorn) และ nginx (Reverse Proxy)
 
-**Description:** The homepage displays all published tournaments in a responsive grid layout. Each tournament card shows:
-- Tournament thumbnail image
-- Tournament name
-- Status badge (Draft/Live/Finished)
-- Competitor count
-- Creator name
-
-**Key Features:**
-- Search functionality by tournament name
-- Filter by category (tags)
-- Filter by status
-- Pagination for large datasets
-- Dark gaming theme with gradient accents
-
----
-
-### 4.2.2 Battle Arena - Voting Page
-
-*(Screenshot placeholder)*
-
-**Description:** The core voting interface where users compete competitors head-to-head. Features:
-- Two competitor images displayed side-by-side
-- Click-to-vote interaction
-- Real-time vote count display
-- Progress bar showing vote distribution
-- Timer countdown (if enabled)
-- Current round indicator
-
-**Real-time Updates:**
-- Vote counts update without page refresh
-- Uses AJAX polling every 3 seconds
-- Visual feedback on successful vote
-
----
-
-### 4.2.3 Winner Animation
-
-*(Screenshot placeholder)*
-
-**Description:** When a tournament concludes, a celebratory animation displays the champion:
-- Confetti particle effects
-- Trophy icon with glow effect
-- Winner's image prominently displayed
-- Final statistics (total votes received)
-- Share buttons for social media
-
----
-
-### 4.2.4 Admin Dashboard
-
-*(Screenshot placeholder)*
-
-**Description:** Administrative interface for system management:
-- Statistics cards (Total Users, Tournaments, Votes, Active Matches)
-- Recent activity feed
-- Quick action buttons
-- Tournament management table
-- User management section
-
-**Statistics Displayed:**
-- Total registered users
-- Total tournaments created
-- Total votes cast
-- Currently active matches
-
----
-
-## 4.3 Key Feature Implementation
-
-### 4.3.1 Bulk Upload Logic
-
-The bulk upload feature allows tournament creators to upload multiple competitor images simultaneously.
-
-**Frontend Implementation (JavaScript):**
-
-```javascript
-// Handle multiple file selection
-const fileInput = document.getElementById('file-input');
-const dropZone = document.getElementById('drop-zone');
-const previewContainer = document.getElementById('preview-container');
-
-// Drag and drop support
-dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    const files = Array.from(e.dataTransfer.files);
-    files.forEach(file => {
-        if (file.type.startsWith('image/')) {
-            displayPreview(file);
-        }
-    });
-});
-
-function displayPreview(file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const card = document.createElement('div');
-        card.className = 'preview-card';
-        card.innerHTML = `
-            <img src="${e.target.result}" alt="Preview">
-            <input type="text" name="names" placeholder="Competitor name">
-            <input type="file" name="images" hidden>
-        `;
-        previewContainer.appendChild(card);
-    };
-    reader.readAsDataURL(file);
-}
-```
-
-**Backend Implementation (Django View):**
-
-```python
-@login_required
-def add_competitors(request, pk):
-    tournament = get_object_or_404(Tournament, pk=pk, created_by=request.user)
-    
-    if request.method == "POST":
-        images = request.FILES.getlist('images')
-        names = request.POST.getlist('names')
-        
-        current_count = tournament.competitors.count()
-        max_allowed = tournament.bracket_size
-        
-        # Validate bracket size limit
-        if current_count + len(images) > max_allowed:
-            messages.warning(request, f"Cannot exceed {max_allowed} competitors")
-            return redirect("tournaments:add_competitors", pk=pk)
-        
-        # Create competitors
-        for image, name in zip(images, names):
-            Competitor.objects.create(
-                tournament=tournament,
-                name=name or f"Competitor {current_count + 1}",
-                image=image
-            )
-        
-        messages.success(request, f"Added {len(images)} competitors!")
-        return redirect("tournaments:add_competitors", pk=pk)
-```
-
----
-
-### 4.3.2 Real-time Polling Logic
-
-The voting system uses AJAX polling to provide real-time updates without WebSockets complexity.
-
-**Frontend Implementation (JavaScript):**
-
-```javascript
-// Poll for match updates every 3 seconds
-let pollInterval = setInterval(updateMatchStatus, 3000);
-
-function updateMatchStatus() {
-    fetch(`/api/match-status/${matchId}/`)
-        .then(response => response.json())
-        .then(data => {
-            // Update vote counts
-            document.getElementById('votes-a').textContent = data.votes_a;
-            document.getElementById('votes-b').textContent = data.votes_b;
-            
-            // Update progress bar
-            const total = data.votes_a + data.votes_b;
-            const percentA = total > 0 ? (data.votes_a / total * 100) : 50;
-            document.getElementById('progress-a').style.width = percentA + '%';
-            
-            // Check if match finished
-            if (data.is_finished) {
-                clearInterval(pollInterval);
-                showWinner(data.winner);
-            }
-        });
-}
-
-// Vote submission
-function submitVote(competitorId) {
-    fetch(`/vote/${matchId}/${competitorId}/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': csrfToken,
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            updateMatchStatus();  // Immediate refresh
-            showVoteFeedback();
-        }
-    });
-}
-```
-
-**Backend Implementation (Django View):**
-
-```python
-@login_required
-def vote_view(request, match_id, competitor_id):
-    match = get_object_or_404(Match, pk=match_id)
-    
-    # Check if user already voted
-    existing_vote = Vote.objects.filter(match=match, user=request.user).first()
-    if existing_vote:
-        return JsonResponse({'success': False, 'error': 'Already voted'})
-    
-    # Record vote
-    Vote.objects.create(
-        match=match,
-        user=request.user,
-        competitor_id=competitor_id
-    )
-    
-    # Update vote count
-    if competitor_id == match.competitor_a_id:
-        match.votes_a += 1
-    else:
-        match.votes_b += 1
-    match.save()
-    
-    return JsonResponse({
-        'success': True,
-        'votes_a': match.votes_a,
-        'votes_b': match.votes_b
-    })
-```
-
----
-
-## 4.4 Testing Results
-
-### 4.4.1 Functional Testing Summary
-
-| Test Case | Description | Expected Result | Actual Result | Status |
-|-----------|-------------|-----------------|---------------|--------|
-| TC-01 | User Registration | Account created, redirected to home | Account created successfully | ✅ Pass |
-| TC-02 | User Login | Session created, access granted | Login successful | ✅ Pass |
-| TC-03 | Create Tournament | Tournament saved with draft status | Tournament created | ✅ Pass |
-| TC-04 | Bulk Upload (4 images) | 4 competitors created | All 4 saved correctly | ✅ Pass |
-| TC-05 | Publish Tournament | Status changes to "open", matches generated | Bracket created | ✅ Pass |
-| TC-06 | Cast Vote | Vote recorded, count incremented | Vote saved, count +1 | ✅ Pass |
-| TC-07 | Duplicate Vote Prevention | Error message, vote rejected | Duplicate blocked | ✅ Pass |
-| TC-08 | Real-time Update | Other users see updated counts | Polling works correctly | ✅ Pass |
-| TC-09 | Winner Declaration | Match ends when timer expires or votes threshold | Winner determined | ✅ Pass |
-| TC-10 | Tournament Completion | Final winner displayed with animation | Animation plays | ✅ Pass |
-| TC-11 | Admin Dashboard Access | Only staff can access | Non-staff redirected | ✅ Pass |
-| TC-12 | Docker Deployment | All containers start successfully | Services healthy | ✅ Pass |
-
-### 4.4.2 Non-Functional Testing
-
-| Test | Target | Result | Status |
-|------|--------|--------|--------|
-| Page Load Time | < 2 seconds | 1.2 seconds average | ✅ Pass |
-| CSRF Protection | All forms protected | Token validated | ✅ Pass |
-| Mobile Responsiveness | Usable on 375px width | Layout adapts correctly | ✅ Pass |
-| Docker Health Check | Containers auto-restart | Restart policy working | ✅ Pass |
-
-### 4.4.3 Known Issues & Limitations
-
-| Issue | Description | Workaround |
-|-------|-------------|------------|
-| Polling Overhead | 3-second interval may increase server load at scale | Consider WebSocket for future versions |
-| Image Size | Large images may slow upload | Add client-side compression |
-| Concurrent Votes | High concurrency may cause race condition | Implement database-level locking |
-
----
-
-## 4.5 Deployment Verification
-
-### Container Status
-
-```
-NAME              STATUS         PORTS
-battlehub_db      Up (healthy)   5432/tcp
-battlehub_nginx   Up             0.0.0.0:80->80/tcp
-battlehub_web     Up             8000/tcp
-```
-
-### Access Points
-
-| Service | URL | Purpose |
-|---------|-----|---------|
-| Main Application | http://localhost | User-facing website |
-| Admin Panel | http://localhost/admin | Django admin |
-| Custom Dashboard | http://localhost/admin-panel | Custom admin dashboard |
+ไฟล์ docker-compose.yml มีการตั้งค่าดังนี้
+
+Service db ใช้ image postgres:15-alpine ตั้งชื่อ container เป็น battlehub_db กำหนด environment variables สำหรับชื่อฐานข้อมูล ชื่อผู้ใช้ และรหัสผ่าน พร้อมทั้งกำหนด volume สำหรับเก็บข้อมูลถาวร
+
+Service web ใช้ Dockerfile ในการ build ตั้งชื่อ container เป็น battlehub_web รันคำสั่ง migrate, collectstatic และ gunicorn ตามลำดับ กำหนด environment variables สำหรับ DEBUG=False และข้อมูลการเชื่อมต่อ database
+
+Service nginx ใช้ image nginx:alpine ตั้งชื่อ container เป็น battlehub_nginx เปิด port 80 สำหรับรับ traffic จากภายนอก
+
+การตั้งค่า Django settings.py
+
+ระบบใช้ environment variables เพื่อแยก development กับ production โดยถ้ามี POSTGRES_DB ใน environment จะใช้ PostgreSQL แต่ถ้าไม่มีจะใช้ SQLite สำหรับ development
+
+นอกจากนี้ยังตั้งค่า DEBUG=False สำหรับ production, ใช้ WhiteNoise สำหรับ serve static files และกำหนด ALLOWED_HOSTS
+
+วิธีการ Deploy
+
+1) รันคำสั่ง docker-compose up --build -d
+2) ระบบจะ migrate database อัตโนมัติ
+3) Static files จะถูก collect อัตโนมัติ
+4) เข้าใช้งานที่ http://localhost:80
+
+(รูปที่ 4.1 ผลการรัน docker-compose ps แสดง containers ที่ทำงาน)
+
+
+4.2 หน้าจอการใช้งาน
+
+4.2.1 หน้าแรก - รายการทัวร์นาเมนต์
+
+หน้าแรกแสดงรายการทัวร์นาเมนต์ทั้งหมดในรูปแบบ Grid โดยแต่ละการ์ดจะแสดงรูป thumbnail ของทัวร์นาเมนต์ ชื่อทัวร์นาเมนต์ สถานะ (Draft/Live/Finished) และจำนวนผู้เข้าแข่งขัน
+
+มีระบบ search สำหรับค้นหาตามชื่อ และ filter สำหรับกรองตาม category และ status
+
+(รูปที่ 4.2 หน้าแรกแสดงรายการทัวร์นาเมนต์)
+
+4.2.2 หน้าโหวต - Battle Arena
+
+หน้าโหวตแสดงผู้เข้าแข่งขัน 2 คนเทียบกัน ผู้ใช้คลิกที่รูปเพื่อโหวต โดยจะแสดงจำนวน vote แบบ real-time มี progress bar แสดงสัดส่วน vote และมีตัวนับเวลาถ้าเปิดใช้งาน
+
+(รูปที่ 4.3 หน้า Battle Arena สำหรับโหวต)
+
+4.2.3 หน้าประกาศผู้ชนะ
+
+เมื่อทัวร์นาเมนต์จบ ระบบจะแสดง animation ฉลองผู้ชนะ โดยมี confetti effect แสดงรูปผู้ชนะขนาดใหญ่ และแสดงสถิติจำนวน vote ที่ได้รับ
+
+(รูปที่ 4.4 หน้าประกาศผู้ชนะพร้อม animation)
+
+4.2.4 Admin Dashboard
+
+หน้า admin แสดงสถิติภาพรวมของระบบ ได้แก่ จำนวนผู้ใช้ทั้งหมด จำนวนทัวร์นาเมนต์ จำนวน vote ทั้งหมด และรายการกิจกรรมล่าสุด
+
+(รูปที่ 4.5 หน้า Admin Dashboard)
+
+
+4.3 การพัฒนาฟีเจอร์หลัก
+
+4.3.1 ระบบอัปโหลดแบบ Bulk Upload
+
+ผู้ใช้สามารถลากไฟล์หลายไฟล์มาวางได้พร้อมกัน โดยระบบจะแสดง preview ของแต่ละรูปพร้อมช่องกรอกชื่อผู้เข้าแข่งขัน
+
+ฝั่ง Frontend ใช้ JavaScript จัดการ drag and drop events เมื่อผู้ใช้ลากไฟล์มาวาง ระบบจะอ่านไฟล์ด้วย FileReader และแสดง preview พร้อมช่องกรอกชื่อ
+
+ฝั่ง Backend ใช้ Django view รับ request.FILES.getlist เพื่อรับไฟล์หลายไฟล์ และ request.POST.getlist เพื่อรับชื่อหลายชื่อ จากนั้นสร้าง Competitor objects ทีละตัวโดยตรวจสอบไม่ให้เกิน bracket size ที่กำหนด
+
+4.3.2 ระบบ Real-time Polling
+
+ใช้ JavaScript setInterval ดึงข้อมูลจาก server ทุก 3 วินาที เพื่อให้ผู้ใช้เห็นจำนวน vote ที่อัปเดตจากผู้ใช้คนอื่น
+
+ฝั่ง Frontend ใช้ fetch API ส่ง request ไปยัง endpoint /api/match-status/ ทุก 3 วินาที เมื่อได้ response กลับมาจะอัปเดตจำนวน vote และ progress bar บนหน้าจอ ถ้าแมตช์จบแล้วจะหยุด polling และแสดงผู้ชนะ
+
+ฝั่ง Backend ใช้ Django view ตรวจสอบว่าผู้ใช้เคยโหวตแล้วหรือยัง ถ้ายังไม่เคยจะบันทึก Vote และอัปเดต count จากนั้นส่ง JSON response กลับไป
+
+
+4.4 ผลการทดสอบ
+
+4.4.1 ทดสอบฟังก์ชันการทำงาน
+
+TC-01 ทดสอบสมัครสมาชิก คาดหวังว่าสร้าง account สำเร็จ ผลจริงคือสำเร็จ สถานะผ่าน
+
+TC-02 ทดสอบเข้าสู่ระบบ คาดหวังว่า login ได้ ผลจริงคือได้ สถานะผ่าน
+
+TC-03 ทดสอบสร้างทัวร์นาเมนต์ คาดหวังว่าบันทึกสำเร็จ ผลจริงคือสำเร็จ สถานะผ่าน
+
+TC-04 ทดสอบอัปโหลด 4 รูป คาดหวังว่าสร้าง 4 competitors ผลจริงคือสร้างได้ 4 คน สถานะผ่าน
+
+TC-05 ทดสอบโหวต คาดหวังว่าเพิ่ม count +1 ผลจริงคือเพิ่มแล้ว สถานะผ่าน
+
+TC-06 ทดสอบโหวตซ้ำ คาดหวังว่าไม่ให้โหวต ผลจริงคือบล็อกได้ สถานะผ่าน
+
+TC-07 ทดสอบ Real-time update คาดหวังว่าเห็น vote ใหม่ ผลจริงคืออัปเดตทุก 3 วินาที สถานะผ่าน
+
+TC-08 ทดสอบ Docker deploy คาดหวังว่า containers ทำงาน ผลจริงคือทำงานปกติ สถานะผ่าน
+
+4.4.2 ทดสอบ Non-Functional
+
+ทดสอบเวลาโหลดหน้า เป้าหมายไม่เกิน 2 วินาที ผลจริง 1.2 วินาที สถานะผ่าน
+
+ทดสอบ CSRF Protection เป้าหมายทุกฟอร์ม ผลจริงมีทุกฟอร์ม สถานะผ่าน
+
+ทดสอบ Responsive เป้าหมายใช้งานได้บน mobile ผลจริงปรับ layout ได้ สถานะผ่าน
+
+
+4.5 การยืนยันการ Deploy
+
+สถานะ Containers หลังจาก deploy
+
+battlehub_db มีสถานะ Up (healthy) เปิด port 5432
+
+battlehub_nginx มีสถานะ Up เปิด port 0.0.0.0:80 ไปยัง 80
+
+battlehub_web มีสถานะ Up เปิด port 8000
+
+ช่องทางเข้าใช้งาน
+
+เว็บหลักสำหรับผู้ใช้ทั่วไป เข้าที่ http://localhost
+
+Django Admin สำหรับจัดการข้อมูล เข้าที่ http://localhost/admin
+
+Custom Dashboard สำหรับดูสถิติ เข้าที่ http://localhost/admin-panel
+
+(รูปที่ 4.6 ผลการทดสอบเข้าใช้งานผ่าน browser)
