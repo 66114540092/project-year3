@@ -1,0 +1,145 @@
+{% extends "custom_admin/base_admin.html" %}
+
+{% block page_title %}Audit Logs{% endblock %}
+{% block header_title %}Audit Logs{% endblock %}
+
+{% block admin_content %}
+<!-- Info Banner -->
+<div class="bg-indigo-500/10 border border-indigo-500/30 rounded-xl p-4 mb-6 flex items-center gap-3">
+    <div class="p-2 bg-indigo-500/20 rounded-lg text-indigo-400">
+        <i class="fa-solid fa-shield-halved"></i>
+    </div>
+    <div>
+        <p class="text-sm text-indigo-300">Security audit trail showing all administrative actions performed on the
+            system.</p>
+    </div>
+</div>
+
+<!-- Audit Logs Table -->
+<div class="bg-slate-900 rounded-xl border border-slate-700/50 overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-700/50 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="p-2 bg-slate-800 rounded-lg text-slate-400">
+                <i class="fa-solid fa-file-shield"></i>
+            </div>
+            <div>
+                <h3 class="font-semibold text-white">Recent Activity</h3>
+                <p class="text-xs text-slate-400">Showing the latest {{ logs|length }} actions</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-slate-800/50">
+                <tr class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    <th class="px-6 py-4">Timestamp</th>
+                    <th class="px-6 py-4">User</th>
+                    <th class="px-6 py-4">Action</th>
+                    <th class="px-6 py-4">Target</th>
+                    <th class="px-6 py-4">Details</th>
+                    <th class="px-6 py-4">IP Address</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+                {% for log in logs %}
+                <tr class="hover:bg-slate-800/30 transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="text-sm text-white">{{ log.created_at|date:"M d, Y" }}</div>
+                        <div class="text-xs text-slate-500">{{ log.created_at|time:"H:i:s" }}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if log.user %}
+                        <div class="flex items-center gap-2">
+                            <div
+                                class="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white">
+                                {{ log.user.username|make_list|first|upper }}
+                            </div>
+                            <span class="text-sm text-slate-300">{{ log.user.username }}</span>
+                        </div>
+                        {% else %}
+                        <span class="text-sm text-slate-500">System</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if log.action == 'DELETE' %}
+                        <span
+                            class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-500/20 text-red-400 border border-red-500/30">
+                            <i class="fa-solid fa-trash mr-1.5"></i>DELETE
+                        </span>
+                        {% elif log.action == 'BAN' %}
+                        <span
+                            class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-500/20 text-red-400 border border-red-500/30">
+                            <i class="fa-solid fa-ban mr-1.5"></i>BAN
+                        </span>
+                        {% elif log.action == 'UNBAN' %}
+                        <span
+                            class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            <i class="fa-solid fa-unlock mr-1.5"></i>UNBAN
+                        </span>
+                        {% elif log.action == 'UPDATE' %}
+                        <span
+                            class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                            <i class="fa-solid fa-pen mr-1.5"></i>UPDATE
+                        </span>
+                        {% elif log.action == 'CREATE' %}
+                        <span
+                            class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            <i class="fa-solid fa-plus mr-1.5"></i>CREATE
+                        </span>
+                        {% elif log.action == 'RESOLVE' %}
+                        <span
+                            class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                            <i class="fa-solid fa-check mr-1.5"></i>RESOLVE
+                        </span>
+                        {% elif log.action == 'FORCE_FINISH' %}
+                        <span
+                            class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                            <i class="fa-solid fa-flag-checkered mr-1.5"></i>FORCE_FINISH
+                        </span>
+                        {% else %}
+                        <span
+                            class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-700/50 text-slate-400">
+                            {{ log.action }}
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="inline-flex items-center gap-1.5 text-sm text-slate-300">
+                            {% if log.target_model == 'User' %}
+                            <i class="fa-solid fa-user text-indigo-400"></i>
+                            {% elif log.target_model == 'Tournament' %}
+                            <i class="fa-solid fa-trophy text-amber-400"></i>
+                            {% elif log.target_model == 'Report' %}
+                            <i class="fa-solid fa-flag text-red-400"></i>
+                            {% else %}
+                            <i class="fa-solid fa-cube text-slate-400"></i>
+                            {% endif %}
+                            {{ log.target_model }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <p class="text-sm text-slate-400 max-w-xs truncate" title="{{ log.details }}">
+                            {{ log.details|truncatechars:40 }}
+                        </p>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="font-mono text-xs text-slate-500">{{ log.ip_address|default:"—" }}</span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-16 text-center">
+                        <div class="text-slate-500">
+                            <i class="fa-solid fa-file-shield text-4xl mb-4"></i>
+                            <p class="text-lg font-medium">No audit logs yet</p>
+                            <p class="text-sm">Administrative actions will appear here</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

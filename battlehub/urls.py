@@ -9,6 +9,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include(("accounts.urls", "accounts"), namespace="accounts")),
     path("tournaments/", include(("tournaments.urls", "tournaments"), namespace="tournaments")),
+    path("admin-panel/", include(("custom_admin.urls", "custom_admin"), namespace="custom_admin")),
     # Convenience redirect for a common misspelling
     path("tourments/", RedirectView.as_view(pattern_name="tournaments:tournament_list", permanent=False)),
 ]

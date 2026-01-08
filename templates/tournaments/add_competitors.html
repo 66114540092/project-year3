@@ -1,65 +1,238 @@
 {% extends "base.html" %}
 
+{% block title %}Add Competitors - {{ tournament.name }}{% endblock %}
+
 {% block content %}
-<div class="container py-4" style="max-width: 900px;">
-  <h2 class="mb-3">Add Competitors – {{ tournament.name }}</h2>
-  <p class="text-muted">
-    You must upload exactly {{ tournament.bracket_size }} competitors.
-    Currently: {{ count }}/{{ tournament.bracket_size }}
-  </p>
+<div class="max-w-5xl mx-auto">
+  <!-- Header -->
+  <div class="mb-8">
+    <a href="{% url 'tournaments:tournament_detail' tournament.pk %}"
+      class="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white transition mb-4">
+      <i class="fas fa-arrow-left"></i>
+      Back to tournament
+    </a>
+    <h1 class="text-2xl font-bold text-white mb-2">
+      <i class="fas fa-users-cog text-blue-400 mr-3"></i>Add Competitors
+    </h1>
+    <p class="text-gray-400">{{ tournament.name }}</p>
+  </div>
 
-  <div class="row">
-    <div class="col-md-5 mb-4">
-      <form method="post" enctype="multipart/form-data" class="card p-3 bg-dark text-light">
+  <!-- Progress Bar -->
+  <div class="bg-slate-800/50 rounded-2xl p-6 border border-slate-700/50 mb-8">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-sm font-medium text-gray-300">
+        <i class="fas fa-chart-pie text-blue-400 mr-2"></i>Progress
+      </span>
+      <span class="text-sm font-bold text-white">{{ count }} / {{ tournament.bracket_size }}</span>
+    </div>
+    <div class="h-3 bg-slate-700 rounded-full overflow-hidden">
+      <div class="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500"
+        style="width: {% widthratio count tournament.bracket_size 100 %}%"></div>
+    </div>
+    {% if can_publish %}
+    <p class="text-green-400 text-sm mt-3">
+      <i class="fas fa-check-circle mr-1"></i>All competitors added! Ready to publish.
+    </p>
+    {% else %}
+    <p class="text-gray-500 text-sm mt-3">
+      Add more competitors to publish the tournament.
+    </p>
+    {% endif %}
+  </div>
+
+  <div class="grid lg:grid-cols-2 gap-8">
+    <!-- Upload Section -->
+    <div class="bg-slate-800/50 rounded-2xl p-6 border border-slate-700/50">
+      <h2 class="text-lg font-semibold text-white mb-6">
+        <i class="fas fa-cloud-upload-alt text-purple-400 mr-2"></i>Upload Competitors
+      </h2>
+
+      <form method="post" enctype="multipart/form-data" id="upload-form">
         {% csrf_token %}
-        <div class="mb-3">
-          <label class="form-label">Name (optional)</label>
-          {{ form.name }}
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Image</label><br>
-          {{ form.image }}
-        </div>
-        <button type="submit" class="btn btn-primary w-100">Add Competitor</button>
-      </form>
 
-      <a href="{% url 'tournaments:tournament_detail' tournament.pk %}" class="btn btn-outline-light mt-3">
-        ← Back to tournament
-      </a>
+        <!-- Drag & Drop Zone -->
+        <div id="drop-zone"
+          class="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center hover:border-blue-500 hover:bg-slate-700/30 transition-all cursor-pointer mb-6">
+          <input type="file" name="images" id="file-input" multiple accept="image/*" class="hidden">
+          <div class="pointer-events-none">
+            <div
+              class="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
+              <i class="fas fa-images text-3xl text-blue-400"></i>
+            </div>
+            <p class="text-white font-medium mb-2">Drag & Drop Images Here</p>
+            <p class="text-gray-500 text-sm mb-4">or click to browse</p>
+            <button type="button" id="browse-btn"
+              class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition pointer-events-auto">
+              <i class="fas fa-folder-open mr-2"></i>Select Images
+            </button>
+          </div>
+        </div>
+
+        <!-- Preview Grid -->
+        <div id="preview-container" class="hidden mb-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-medium text-gray-300">
+              <i class="fas fa-eye text-green-400 mr-2"></i>Preview (<span id="preview-count">0</span> images)
+            </h3>
+            <button type="button" id="clear-btn" class="text-xs text-red-400 hover:text-red-300 transition">
+              <i class="fas fa-times mr-1"></i>Clear All
+            </button>
+          </div>
+          <div id="preview-grid" class="grid grid-cols-2 gap-4"></div>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" id="submit-btn" disabled
+          class="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition">
+          <i class="fas fa-upload mr-2"></i>Upload Competitors
+        </button>
+      </form>
     </div>
 
-    <div class="col-md-7">
-      <h5>Competitors</h5>
+    <!-- Current Competitors -->
+    <div class="bg-slate-800/50 rounded-2xl p-6 border border-slate-700/50">
+      <h2 class="text-lg font-semibold text-white mb-6">
+        <i class="fas fa-users text-green-400 mr-2"></i>Current Competitors
+      </h2>
+
       {% if competitors %}
-        <div class="row g-2">
-          {% for c in competitors %}
-            <div class="col-6">
-              <div class="card bg-dark text-light">
-                <img src="{{ c.image.url }}" class="card-img-top" alt="{{ c.name }}">
-                <div class="card-body p-2">
-                  <small>{{ c.name|default:"(no name)" }}</small>
-                </div>
-              </div>
-            </div>
-          {% endfor %}
+      <div class="grid grid-cols-2 gap-3">
+        {% for c in competitors %}
+        <div class="bg-slate-900/50 rounded-xl overflow-hidden border border-slate-700/50">
+          <img src="{{ c.image.url }}" alt="{{ c.name }}" class="w-full h-32 object-cover">
+          <div class="p-3">
+            <p class="text-sm font-medium text-white truncate">{{ c.name|default:"(unnamed)" }}</p>
+          </div>
         </div>
+        {% endfor %}
+      </div>
       {% else %}
-        <p class="text-muted">No competitors yet.</p>
+      <div class="text-center py-12 text-gray-500">
+        <i class="fas fa-user-slash text-4xl mb-4 opacity-50"></i>
+        <p>No competitors yet</p>
+        <p class="text-sm">Upload images to get started</p>
+      </div>
       {% endif %}
 
       {% if can_publish %}
-        <form method="post" action="{% url 'tournaments:publish' tournament.pk %}" class="mt-4">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-success">
-            Publish tournament & start bracket
-          </button>
-        </form>
-      {% else %}
-        <p class="text-muted mt-3">
-          Add all {{ tournament.bracket_size }} competitors to enable publishing.
-        </p>
+      <form method="post" action="{% url 'tournaments:publish' tournament.pk %}" class="mt-6">
+        {% csrf_token %}
+        <button type="submit"
+          class="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold rounded-xl transition">
+          <i class="fas fa-rocket mr-2"></i>Publish Tournament
+        </button>
+      </form>
       {% endif %}
     </div>
   </div>
 </div>
+
+<script>
+  (function () {
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const browseBtn = document.getElementById('browse-btn');
+    const previewContainer = document.getElementById('preview-container');
+    const previewGrid = document.getElementById('preview-grid');
+    const previewCount = document.getElementById('preview-count');
+    const clearBtn = document.getElementById('clear-btn');
+    const submitBtn = document.getElementById('submit-btn');
+    const form = document.getElementById('upload-form');
+
+    let selectedFiles = [];
+
+    // Browse button click
+    browseBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      fileInput.click();
+    });
+
+    // Drop zone click
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    // Drag events
+    ['dragenter', 'dragover'].forEach(evt => {
+      dropZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        dropZone.classList.add('border-blue-500', 'bg-slate-700/30');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(evt => {
+      dropZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-blue-500', 'bg-slate-700/30');
+      });
+    });
+
+    // Handle drop
+    dropZone.addEventListener('drop', (e) => {
+      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+      handleFiles(files);
+    });
+
+    // Handle file input change
+    fileInput.addEventListener('change', () => {
+      handleFiles(Array.from(fileInput.files));
+    });
+
+    // Process selected files
+    function handleFiles(files) {
+      selectedFiles = files;
+      updatePreviews();
+    }
+
+    // Update preview grid
+    function updatePreviews() {
+      previewGrid.innerHTML = '';
+
+      if (selectedFiles.length === 0) {
+        previewContainer.classList.add('hidden');
+        submitBtn.disabled = true;
+        return;
+      }
+
+      previewContainer.classList.remove('hidden');
+      previewCount.textContent = selectedFiles.length;
+      submitBtn.disabled = false;
+
+      selectedFiles.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const card = document.createElement('div');
+          card.className = 'bg-slate-900/50 rounded-xl overflow-hidden border border-slate-700/50';
+          card.innerHTML = `
+          <img src="${e.target.result}" alt="Preview" class="w-full h-28 object-cover">
+          <div class="p-3">
+            <input type="text" name="names" placeholder="Competitor name..."
+                   class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none">
+          </div>
+        `;
+          previewGrid.appendChild(card);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Clear all
+    clearBtn.addEventListener('click', () => {
+      selectedFiles = [];
+      fileInput.value = '';
+      updatePreviews();
+    });
+
+    // Handle form submit - rebuild FormData with current files
+    form.addEventListener('submit', (e) => {
+      if (selectedFiles.length === 0) {
+        e.preventDefault();
+        return;
+      }
+
+      // Create a new DataTransfer to set files
+      const dt = new DataTransfer();
+      selectedFiles.forEach(file => dt.items.add(file));
+      fileInput.files = dt.files;
+    });
+  })();
+</script>
 {% endblock %}

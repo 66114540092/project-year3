@@ -1,67 +1,342 @@
-{% extends "base.html" %}
+﻿{% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Tournaments · BattleHub{% endblock %}
+{% block title %}Tournaments - BattleHub{% endblock %}
 
 {% block content %}
-  <div class="bh-list-header">
+<div class="bh-list-header">
     <div>
-      <h1 class="bh-page-title">Tournaments</h1>
-      <p class="bh-page-subtitle">
-        Browse tournaments and pick one to vote.
-      </p>
+        <h1 class="bh-page-title"><i class="fas fa-trophy text-yellow-400"></i> Tournaments</h1>
+        <p class="bh-page-subtitle">Browse and join exciting voting battles</p>
     </div>
 
     {% if user.is_authenticated %}
-      <a href="{% url 'tournaments:tournament_create' %}" class="bh-btn">
-        + Create tournament
-      </a>
+    <a href="{% url 'tournaments:tournament_create' %}" class="bh-btn">
+        + Create Tournament
+    </a>
     {% endif %}
-  </div>
+</div>
 
-  {% if tournaments %}
-    <div class="bh-grid">
-      {% for t in tournaments %}
-        <article class="bh-card">
-          <div class="bh-card-header" style="display:flex;gap:.75rem;align-items:center;">
-            {% if t.thumbnail %}
-              <img src="{{ t.thumbnail.url }}" alt="{{ t.name }} thumb" style="width:120px;height:120px;object-fit:cover;border-radius:6px;border:1px solid #eee;">
-            {% endif %}
-            <div style="flex:1;">
-              <h2 class="bh-card-title">{{ t.name }}</h2>
-              <div style="font-size: 0.8rem; color: var(--text-soft);">
-                Created {{ t.created_at|date:"Y-m-d H:i" }}
-              </div>
-            </div>
-            <span class="bh-badge {% if t.status == 'open' %}bh-badge-green{% else %}bh-badge-red{% endif %}">
-              {{ t.get_status_display|default:t.status|capfirst }}
-            </span>
-          </div>
+<!-- Search & Filters -->
+<div class="bh-card" style="margin-bottom: 1.5rem;">
+    <form method="get" action="" class="bh-filter-form" id="filter-form">
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
 
-          {% if t.description %}
-            <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 0.7rem;">
-              {{ t.description|truncatechars:140 }}
-            </p>
-          {% endif %}
-
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:.75rem;">
-            <div style="font-size:0.8rem; color:var(--text-soft);">
-              Rounds: {{ t.total_rounds }}<br>
-              Contestants: {{ t.competitors.count|default:"2" }}
+            <!-- Search -->
+            <div class="bh-form-group" style="flex: 1; min-width: 220px; margin-bottom: 0;">
+                <label class="bh-label">Search</label>
+                <input type="text" name="search" class="bh-input" placeholder="Search tournaments..."
+                    value="{{ search_query }}">
             </div>
 
-            <a href="{% url 'tournaments:tournament_detail' t.pk %}" class="bh-btn bh-btn-sm">
-              View
+            <!-- Category Filter (Native Select) -->
+            <div class="bh-form-group" style="min-width: 160px; margin-bottom: 0;">
+                <label class="bh-label">Category</label>
+                <select name="tag" class="bh-select" onchange="this.form.submit()">
+                    <option value="">All Categories</option>
+                    {% for tag in all_tags %}
+                    <option value="{{ tag.name }}" {% if tag.is_selected %}selected{% endif %}>{{ tag.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Status Filter (Native Select) -->
+            <div class="bh-form-group" style="min-width: 140px; margin-bottom: 0;">
+                <label class="bh-label">Status</label>
+                <select name="status" class="bh-select" onchange="this.form.submit()">
+                    <option value="">All Status</option>
+                    {% for status in status_choices %}
+                    <option value="{{ status.value }}" {% if status.is_selected %}selected{% endif %}>{{ status.label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Submit -->
+            <button type="submit" class="bh-btn" style="height: 42px;">
+                <i class="fas fa-search"></i> Filter
+            </button>
+
+            {% if search_query or selected_tag or selected_status %}
+            <a href="{% url 'tournaments:tournament_list' %}" class="bh-btn bh-btn-outline"
+                style="height: 42px; display: flex; align-items: center;">
+                <i class="fas fa-times"></i> Clear
             </a>
-          </div>
-        </article>
-      {% endfor %}
-    </div>
-  {% else %}
-    <div class="bh-card bh-empty">
-      No tournaments yet.
-      {% if user.is_authenticated %}
-        Create your first one with the button on the top right.
-      {% endif %}
-    </div>
-  {% endif %}
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<script>
+    // Custom Dropdown Logic
+    document.querySelectorAll('.bh-dropdown').forEach(dropdown => {
+        const toggle = dropdown.querySelector('.bh-dropdown-toggle');
+        const menu = dropdown.querySelector('.bh-dropdown-menu');
+        const input = dropdown.querySelector('input[type="hidden"]');
+        const items = dropdown.querySelectorAll('.bh-dropdown-item');
+
+        toggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.querySelectorAll('.bh-dropdown').forEach(d => {
+                if (d !== dropdown) d.classList.remove('open');
+            });
+            dropdown.classList.toggle('open');
+        });
+
+        items.forEach(item => {
+            item.addEventListener('click', () => {
+                const value = item.dataset.value;
+                const text = item.textContent.trim();
+                toggle.textContent = text;
+                input.value = value;
+                items.forEach(i => i.classList.remove('selected'));
+                item.classList.add('selected');
+                dropdown.classList.remove('open');
+                // Auto-submit form when selection changes
+                document.getElementById('filter-form').submit();
+            });
+        });
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.bh-dropdown')) {
+            document.querySelectorAll('.bh-dropdown').forEach(d => d.classList.remove('open'));
+        }
+    });
+</script>
+
+<!-- Tournament Grid -->
+{% if tournaments %}
+<div class="tournament-grid">
+    {% for tournament in tournaments %}
+    <a href="{% url 'tournaments:tournament_detail' pk=tournament.pk %}" class="tournament-card">
+        <!-- Cover Image -->
+        <div class="tournament-cover">
+            {% if tournament.cover_image %}
+            <img src="{{ tournament.cover_image.url }}" alt="{{ tournament.name }}">
+            {% else %}
+            <div class="tournament-cover-placeholder"><i class="fas fa-trophy"></i></div>
+            {% endif %}
+
+            <!-- Status Badge -->
+            <span class="tournament-status tournament-status-{{ tournament.status }}">
+                {% if tournament.status == 'waiting' %}<i class="fas fa-hourglass-half"></i> Waiting
+                {% elif tournament.status == 'live' %}<i class="fas fa-circle text-red-400 animate-pulse"></i> Live
+                {% elif tournament.status == 'finished' %}<i class="fas fa-check-circle"></i> Finished
+                {% else %}{{ tournament.status }}
+                {% endif %}
+            </span>
+        </div>
+
+        <!-- Info -->
+        <div class="tournament-info">
+            <h3 class="tournament-title">{{ tournament.name }}</h3>
+
+            {% if tournament.description %}
+            <p class="tournament-desc">{{ tournament.description|truncatewords:15 }}</p>
+            {% endif %}
+
+            <div class="tournament-meta">
+                <span><i class="fas fa-users text-blue-400"></i> {{ tournament.bracket_size }} competitors</span>
+                {% if tournament.created_by %}
+                <span>by {{ tournament.created_by.username }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div class="bh-pagination">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_tag %}&tag={{ selected_tag }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}"
+        class="bh-btn bh-btn-outline bh-btn-sm">
+        <i class="fas fa-arrow-left"></i> Previous
+    </a>
+    {% endif %}
+
+    <span class="bh-pagination-info">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_tag %}&tag={{ selected_tag }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}"
+        class="bh-btn bh-btn-outline bh-btn-sm">
+        Next <i class="fas fa-arrow-right"></i>
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="bh-empty-state">
+    <div class="bh-empty-icon"><i class="fas fa-trophy"></i></div>
+    <h3>No tournaments found</h3>
+    <p>{% if search_query or selected_tag or selected_status %}Try adjusting your filters{% else %}Be the first to
+        create one!{% endif %}</p>
+    {% if user.is_authenticated %}
+    <a href="{% url 'tournaments:tournament_create' %}" class="bh-btn" style="margin-top: 1rem;">
+        + Create Tournament
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+
+<style>
+    /* Tournament Grid */
+    .tournament-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.2rem;
+    }
+
+    .tournament-card {
+        background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 60%),
+            linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 1));
+        border: 1px solid rgba(31, 41, 55, 0.9);
+        border-radius: 16px;
+        overflow: hidden;
+        text-decoration: none;
+        color: inherit;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .tournament-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 40px rgba(37, 99, 235, 0.2);
+        border-color: rgba(59, 130, 246, 0.5);
+    }
+
+    .tournament-cover {
+        position: relative;
+        height: 160px;
+        background: linear-gradient(135deg, #1e3a5f, #0f172a);
+        overflow: hidden;
+    }
+
+    .tournament-cover img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .tournament-cover-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        opacity: 0.4;
+    }
+
+    .tournament-status {
+        position: absolute;
+        top: 0.7rem;
+        right: 0.7rem;
+        padding: 0.25rem 0.6rem;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        backdrop-filter: blur(8px);
+    }
+
+    .tournament-status-waiting {
+        background: rgba(234, 179, 8, 0.2);
+        color: #fde047;
+        border: 1px solid rgba(234, 179, 8, 0.5);
+    }
+
+    .tournament-status-live {
+        background: rgba(239, 68, 68, 0.2);
+        color: #fca5a5;
+        border: 1px solid rgba(239, 68, 68, 0.5);
+        animation: pulse-live 1.5s ease-in-out infinite;
+    }
+
+    .tournament-status-finished {
+        background: rgba(34, 197, 94, 0.2);
+        color: #86efac;
+        border: 1px solid rgba(34, 197, 94, 0.5);
+    }
+
+    @keyframes pulse-live {
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.7;
+        }
+    }
+
+    .tournament-info {
+        padding: 1rem 1.2rem 1.2rem;
+    }
+
+    .tournament-title {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #f9fafb;
+        margin: 0 0 0.4rem 0;
+        line-height: 1.3;
+    }
+
+    .tournament-desc {
+        font-size: 0.82rem;
+        color: #9ca3af;
+        margin: 0 0 0.7rem 0;
+        line-height: 1.4;
+    }
+
+    .tournament-meta {
+        display: flex;
+        gap: 0.8rem;
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+
+    /* Pagination */
+    .bh-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding: 1rem 0;
+    }
+
+    .bh-pagination-info {
+        font-size: 0.85rem;
+        color: #9ca3af;
+    }
+
+    /* Empty State */
+    .bh-empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #9ca3af;
+    }
+
+    .bh-empty-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .bh-empty-state h3 {
+        font-size: 1.3rem;
+        color: #e5e7eb;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .bh-empty-state p {
+        margin: 0;
+        font-size: 0.9rem;
+    }
+</style>
 {% endblock %}

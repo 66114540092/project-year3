@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+
+{% block title %}Waiting Lobby · {{ tournament.name }}{% endblock %}
+
+{% block content %}
+<style>
+    .lobby-container {
+        max-width: 900px;
+        margin: 2rem auto;
+        padding: 2rem 1rem;
+    }
+
+    .lobby-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .lobby-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 1rem;
+    }
+
+    .pin-display {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        padding: 2rem;
+        border-radius: 20px;
+        text-align: center;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 40px rgba(245, 87, 108, 0.4);
+    }
+
+    .pin-label {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+
+    .pin-code {
+        font-size: 4rem;
+        font-weight: 900;
+        color: white;
+        letter-spacing: 1rem;
+        font-family: monospace;
+    }
+
+    .pin-instruction {
+        margin-top: 1rem;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 0.95rem;
+    }
+
+    .participants-section {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .participants-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .participants-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #fff;
+    }
+
+    .participants-count {
+        background: #667eea;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 700;
+        color: white;
+    }
+
+    .participants-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .participant-card {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .participant-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+
+    .participant-name {
+        font-weight: 600;
+        color: #fff;
+        flex: 1;
+    }
+
+    .start-btn {
+        width: 100%;
+        padding: 1.5rem;
+        font-size: 1.3rem;
+        font-weight: 700;
+        border: none;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        box-shadow: 0 10px 40px rgba(76, 175, 80, 0.4);
+    }
+
+    .start-btn:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 15px 50px rgba(76, 175, 80, 0.5);
+    }
+
+    .start-btn:disabled {
+        background: #666;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+    }
+
+    .waiting-message {
+        text-align: center;
+        color: #aaa;
+        margin-top: 1rem;
+        font-size: 0.9rem;
+    }
+</style>
+
+<div class="lobby-container">
+    <div class="lobby-header">
+        <h1 class="lobby-title">🎮 {{ tournament.name }}</h1>
+    </div>
+
+    <!-- PIN Display-->
+    <div class="pin-display">
+        <div class="pin-label">Game PIN</div>
+        <div class="pin-code">{{ tournament.pin_code }}</div>
+        <div class="pin-instruction">
+            Share this PIN with participants<br>
+            They can join at: <strong>{{ request.scheme }}://{{ request.get_host }}/tournaments/join/</strong>
+        </div>
+    </div>
+
+    <!-- Participants List -->
+    <div class="participants-section">
+        <div class="participants-header">
+            <h2 class="participants-title">👥 Participants</h2>
+            <div class="participants-count" id="participant-count">
+                {{ participants.count }}
+            </div>
+        </div>
+
+        <div class="participants-list" id="participants-list">
+            {% for p in participants %}
+            <div class="participant-card">
+                <div class="participant-avatar">
+                    {{ p.nickname|slice:":1"|upper }}
+                </div>
+                <div class="participant-name">{{ p.nickname }}</div>
+            </div>
+            {% empty %}
+            <div style="grid-column: 1 / -1; text-align: center; color: #aaa;">
+                Waiting for participants to join...
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Start Tournament Button -->
+    {% if tournament.status == "waiting" %}
+    {% if user == tournament.created_by %}
+    <form method="post" action="{% url 'tournaments:start_tournament' tournament.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="start-btn" id="start-btn">
+            🚀 Start Tournament
+        </button>
+        <div class="waiting-message">
+            Waiting for participants to join...
+        </div>
+    </form>
+    {% else %}
+    <div class="waiting-message" style="font-size: 1.2rem; margin-top: 2rem;">
+        ⏳ Waiting for host to start the tournament...
+    </div>
+    {% endif %}
+    {% elif tournament.status == "live" %}
+    <a href="{% url 'tournaments:play' tournament.pk %}" class="start-btn"
+        style="display: block; text-decoration: none; text-align: center;">
+        ▶ Go to Tournament
+    </a>
+    {% endif %}
+</div>
+
+<script>
+    // Real-time participant updates (AJAX polling)
+    (function () {
+        const statusUrl = "{% url 'tournaments:participant_status' tournament.pk %}";
+        const participantsList = document.getElementById('participants-list');
+        const participantCount = document.getElementById('participant-count');
+
+        function updateParticipants() {
+            fetch(statusUrl)
+                .then(response => response.json())
+                .then(data => {
+                    // Update count
+                    participantCount.textContent = data.participant_count;
+
+                    // Update list
+                    if (data.participants.length > 0) {
+                        participantsList.innerHTML = data.participants.map(p => `
+            <div class="participant-card">
+              <div class="participant-avatar">
+                ${p.nickname.charAt(0).toUpperCase()}
+              </div>
+              <div class="participant-name">${p.nickname}</div>
+            </div>
+          `).join('');
+                    }
+
+                    // Redirect if tournament started
+                    if (data.status === 'live' && data.redirect_url) {
+                        window.location.href = data.redirect_url;
+                    }
+                })
+                .catch(error => console.error('Error fetching participants:', error));
+        }
+
+        // Poll every 2 seconds
+        setInterval(updateParticipants, 2000);
+        updateParticipants(); // Initial load
+    })();
+</script>
+{% endblock %}

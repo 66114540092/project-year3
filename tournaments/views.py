@@ -6,12 +6,67 @@ from .forms import TournamentForm, CompetitorForm, CommentForm
 from .models import Tournament, Competitor, Match, MatchVote
 
 
+from django.db.models import Q
+from django.core.paginator import Paginator
+
 def tournament_list(request):
-    tournaments = Tournament.objects.all()
+    """
+    Shows list of tournaments with Search & Filter
+    """
+    search_query = request.GET.get("search", "")
+    selected_tag = request.GET.get("tag", "")
+    selected_status = request.GET.get("status", "")
+
+    tournaments = Tournament.objects.all().order_by('-created_at')
+
+    # 1. Search
+    if search_query:
+        tournaments = tournaments.filter(
+            Q(name__icontains=search_query) | 
+            Q(description__icontains=search_query)
+        )
+
+    # 2. Filter by Status
+    if selected_status:
+        tournaments = tournaments.filter(status=selected_status)
+
+    # 3. Filter by Tag (Category)
+    if selected_tag:
+        tournaments = tournaments.filter(category=selected_tag)
+
+    # 4. Get Categories from Model Choices (consistent with create form)
+    all_tags = []
+    for value, label in Tournament.CATEGORY_CHOICES:
+        all_tags.append({
+            'name': value,
+            'label': label,
+            'is_selected': (value == selected_tag)
+        })
+
+    # 5. Pagination
+    paginator = Paginator(tournaments, 12)  # 12 items per page
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        "tournaments": page_obj,
+        "page_obj": page_obj,
+        "all_tags": all_tags,
+        "search_query": search_query,
+        "selected_tag": selected_tag,
+        "selected_status": selected_status,
+        # Status choices for template loop (avoiding == in template)
+        "status_choices": [
+            {"value": "draft", "label": "📝 Draft", "is_selected": selected_status == "draft"},
+            {"value": "open", "label": "🔴 Live", "is_selected": selected_status == "open"},
+            {"value": "finished", "label": "✅ Finished", "is_selected": selected_status == "finished"},
+        ],
+    }
+
     return render(
         request,
         "tournaments/tournament_list.html",
-        {"tournaments": tournaments},
+        context,
     )
 
 
@@ -98,7 +153,7 @@ def tournament_delete(request, pk):
 
 @login_required
 def add_competitors(request, pk):
-    """หน้าอัปโหลดรูปผู้เข้าแข่งขัน"""
+    """หน้าอัปโหลดรูปผู้เข้าแข่งขัน - supports bulk upload"""
     tournament = get_object_or_404(Tournament, pk=pk, created_by=request.user)
 
     if tournament.status != "draft":
@@ -106,15 +161,37 @@ def add_competitors(request, pk):
         return redirect("tournaments:tournament_detail", pk=pk)
 
     if request.method == "POST":
-        form = CompetitorForm(request.POST, request.FILES)
-        if form.is_valid():
-            competitor = form.save(commit=False)
-            competitor.tournament = tournament
-            competitor.save()
-            messages.success(request, "Competitor added.")
-            return redirect("tournaments:add_competitors", pk=tournament.pk)
-    else:
-        form = CompetitorForm()
+        # Handle bulk upload
+        images = request.FILES.getlist('images')
+        names = request.POST.getlist('names')
+        
+        if images:
+            # Calculate remaining slots
+            current_count = tournament.competitors.count()
+            remaining = tournament.bracket_size - current_count
+            
+            # Limit uploads to remaining slots
+            images_to_add = images[:remaining]
+            added_count = 0
+            
+            for i, image in enumerate(images_to_add):
+                name = names[i] if i < len(names) else ""
+                Competitor.objects.create(
+                    tournament=tournament,
+                    name=name.strip(),
+                    image=image
+                )
+                added_count += 1
+            
+            if added_count > 0:
+                messages.success(request, f"Added {added_count} competitor{'s' if added_count > 1 else ''}.")
+            
+            if len(images) > remaining:
+                messages.warning(request, f"Only {remaining} slots were available. {len(images) - remaining} image(s) were not added.")
+        else:
+            messages.error(request, "Please select at least one image.")
+        
+        return redirect("tournaments:add_competitors", pk=tournament.pk)
 
     competitors = tournament.competitors.all()
     count = competitors.count()
@@ -125,7 +202,6 @@ def add_competitors(request, pk):
         "tournaments/add_competitors.html",
         {
             "tournament": tournament,
-            "form": form,
             "competitors": competitors,
             "count": count,
             "can_publish": can_publish,
@@ -286,20 +362,24 @@ def _create_next_round_matches(tournament: Tournament):
     current_round = tournament.current_round
     next_round = current_round + 1
 
-    winners = list(
-        Competitor.objects.filter(
-            wins__tournament=tournament,
-            wins__round_number=current_round,
-        ).distinct()
-    )
+    # ดึงแมตช์ของ round ปัจจุบัน เรียงตาม index
+    current_matches = tournament.matches.filter(
+        round_number=current_round
+    ).order_by("index_in_round")
+
+    winners = []
+    for m in current_matches:
+        if m.winner:
+            winners.append(m.winner)
 
     # ลบแมตช์ของ next_round ถ้ามีอยู่ก่อน
     tournament.matches.filter(round_number=next_round).delete()
 
     index = 1
     for i in range(0, len(winners), 2):
-        c1 = winners[i]
-        c2 = winners[i + 1]
+        if i + 1 < len(winners):
+            c1 = winners[i]
+            c2 = winners[i + 1]
         Match.objects.create(
             tournament=tournament,
             round_number=next_round,
@@ -324,10 +404,28 @@ def summary(request, pk):
 
     champion = tournament.champion()
 
+    import json
+    from django.core.serializers.json import DjangoJSONEncoder
+
+    # Serialize matches for JS consumption to avoid template tag issues
+    matches_data = []
+    for m in matches:
+        matches_data.append({
+            'round_number': m.round_number,
+            'competitor1_name': m.competitor1.name if m.competitor1 else '?',
+            'competitor2_name': m.competitor2.name if m.competitor2 else '?',
+            'votes1': m.votes_for_competitor1,
+            'votes2': m.votes_for_competitor2,
+            'winner_name': m.winner.name if m.winner else None,
+            'is_finished': m.is_finished,
+        })
+    
+    matches_json = json.dumps(matches_data, cls=DjangoJSONEncoder)
+
     return render(
         request,
         "tournaments/summary.html",
-        {"tournament": tournament, "rounds": rounds, "champion": champion},
+        {"tournament": tournament, "rounds": rounds, "champion": champion, "matches_json": matches_json},
     )
 
 
@@ -343,3 +441,98 @@ def add_comment(request, pk):
             c.save()
             messages.success(request, "Comment posted.")
     return redirect("tournaments:tournament_detail", pk=pk)
+
+
+# AJAX Endpoints for Real-time Play Interface
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+import json
+
+
+def vote_update(request, pk):
+    """AJAX endpoint to get current match state (votes, timer, status)"""
+    tournament = get_object_or_404(Tournament, pk=pk)
+    current_match = tournament.current_match()
+    
+    if not current_match:
+        return JsonResponse({
+            'status': tournament.status,
+            'match': None,
+            'redirect_url': f'/tournaments/{pk}/summary/' if tournament.status == 'finished' else None
+        })
+    
+    # Get vote counts
+    votes_c1 = current_match.votes.filter(choice='1').count()
+    votes_c2 = current_match.votes.filter(choice='2').count()
+    total_votes = votes_c1 + votes_c2
+    
+    # Calculate percentages
+    pct_c1 = round((votes_c1 / total_votes * 100) if total_votes > 0 else 50)
+    pct_c2 = 100 - pct_c1
+    
+    # Get user's current vote
+    user_vote = None
+    if request.user.is_authenticated:
+        vote_obj = MatchVote.objects.filter(match=current_match, user=request.user).first()
+        if vote_obj:
+            user_vote = vote_obj.choice
+    
+    return JsonResponse({
+        'status': tournament.status,
+        'match': {
+            'id': current_match.id,
+            'round': current_match.round_number,
+            'is_finished': current_match.is_finished,
+            'competitor1': {
+                'id': current_match.competitor_1.id,
+                'name': current_match.competitor_1.name,
+                'image': current_match.competitor_1.image.url if current_match.competitor_1.image else None,
+                'votes': votes_c1,
+                'percentage': pct_c1,
+            },
+            'competitor2': {
+                'id': current_match.competitor_2.id,
+                'name': current_match.competitor_2.name,
+                'image': current_match.competitor_2.image.url if current_match.competitor_2.image else None,
+                'votes': votes_c2,
+                'percentage': pct_c2,
+            },
+            'total_votes': total_votes,
+        },
+        'user_vote': user_vote,
+        'redirect_url': None
+    })
+
+
+@require_POST
+def vote_submit(request, pk):
+    """AJAX endpoint to submit/update vote"""
+    tournament = get_object_or_404(Tournament, pk=pk)
+    current_match = tournament.current_match()
+    
+    if not current_match or tournament.status == 'finished':
+        return JsonResponse({'success': False, 'error': 'No active match'})
+    
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Must be logged in'})
+    
+    try:
+        data = json.loads(request.body)
+        choice = data.get('choice')
+    except:
+        choice = request.POST.get('choice')
+    
+    if choice not in ['1', '2']:
+        return JsonResponse({'success': False, 'error': 'Invalid choice'})
+    
+    vote_obj, created = MatchVote.objects.update_or_create(
+        match=current_match,
+        user=request.user,
+        defaults={'choice': choice}
+    )
+    
+    return JsonResponse({
+        'success': True,
+        'created': created,
+        'choice': choice
+    })

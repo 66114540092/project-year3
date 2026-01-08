@@ -1,0 +1,366 @@
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.models import User
+from django.contrib import messages
+from django.db.models import Count, Q
+from django.utils import timezone
+from django.core.paginator import Paginator
+
+# Import Models
+from tournaments.models import Tournament, MatchVote
+from .models import Report, SupportTicket, AuditLog
+
+
+def is_admin(user):
+    """Check if user is authenticated and is staff/superuser"""
+    return user.is_authenticated and user.is_staff
+
+
+def admin_required(view_func):
+    """Decorator combining login_required and user_passes_test for admin"""
+    decorated = login_required(login_url='/accounts/login/')(view_func)
+    decorated = user_passes_test(is_admin, login_url='/')(decorated)
+    return decorated
+
+
+@admin_required
+def admin_dashboard(request):
+    """
+    Main Admin Dashboard View
+    Displays key metrics and recent activity.
+    """
+    # Stats
+    total_users = User.objects.count()
+    new_users_today = User.objects.filter(date_joined__gte=timezone.now().date()).count()
+    total_tournaments = Tournament.objects.count()
+    active_tournaments = Tournament.objects.filter(status='live').count()
+    total_votes = MatchVote.objects.count()
+    
+    # Recent tournaments (5 newest)
+    recent_tournaments = Tournament.objects.select_related('created_by').order_by('-created_at')[:5]
+    
+    context = {
+        'total_users': total_users,
+        'new_users_today': new_users_today,
+        'total_tournaments': total_tournaments,
+        'active_tournaments': active_tournaments,
+        'total_votes': total_votes,
+        'pending_reports': Report.objects.filter(status='open').count(),
+        'recent_tournaments': recent_tournaments,
+        'section': 'dashboard',
+    }
+    return render(request, 'custom_admin/dashboard.html', context)
+
+
+@admin_required
+def admin_tournament_list(request):
+    """
+    Tournament Management View
+    Features: Search, Filter, Pagination
+    """
+    query = request.GET.get('q', '')
+    status_filter = request.GET.get('status', '')
+    
+    tournaments = Tournament.objects.select_related('created_by').order_by('-created_at')
+    
+    # Search
+    if query:
+        tournaments = tournaments.filter(
+            Q(name__icontains=query) | 
+            Q(created_by__username__icontains=query)
+        )
+    
+    # Filter
+    if status_filter:
+        tournaments = tournaments.filter(status=status_filter)
+        
+    # Pagination
+    paginator = Paginator(tournaments, 15)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'query': query,
+        'status_filter': status_filter,
+        'section': 'tournaments',
+    }
+    return render(request, 'custom_admin/tournament_list.html', context)
+
+
+@user_passes_test(is_admin, login_url='/accounts/login/')
+def admin_user_list(request):
+    """
+    User Management View
+    Features: List, Search, Filter (Role), Ban/Unban Status
+    """
+    from django.core.paginator import Paginator
+    
+    query = request.GET.get('q', '')
+    role_filter = request.GET.get('role', '')
+    
+    users = User.objects.all().order_by('-date_joined')
+    
+    # Search
+    if query:
+        users = users.filter(
+            Q(username__icontains=query) | 
+            Q(email__icontains=query)
+        )
+    
+    # Filter
+    if role_filter == 'admin':
+        users = users.filter(is_superuser=True)
+    elif role_filter == 'staff':
+        users = users.filter(is_staff=True, is_superuser=False)
+    elif role_filter == 'user':
+        users = users.filter(is_staff=False, is_superuser=False)
+        
+    # Pagination
+    paginator = Paginator(users, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'query': query,
+        'role_filter': role_filter,
+        'section': 'users',
+    }
+    return render(request, 'custom_admin/user_list.html', context)
+
+
+@admin_required
+def admin_delete_tournament(request, pk):
+    """Delete a tournament"""
+    if request.method == 'POST':
+        tournament = get_object_or_404(Tournament, pk=pk)
+        name = tournament.name
+        
+        # Log the action
+        AuditLog.objects.create(
+            user=request.user,
+            action='DELETE',
+            target_model='Tournament',
+            details=f'Deleted tournament: {name} (ID: {pk})',
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+        
+        tournament.delete()
+        messages.success(request, f'Tournament "{name}" has been deleted.')
+    
+    return redirect('custom_admin:tournament_list')
+
+
+@admin_required
+def admin_force_finish_tournament(request, pk):
+    """Force finish a tournament"""
+    if request.method == 'POST':
+        tournament = get_object_or_404(Tournament, pk=pk)
+        
+        # Update status to finished
+        tournament.status = 'finished'
+        tournament.save()
+        
+        # Log the action
+        AuditLog.objects.create(
+            user=request.user,
+            action='FORCE_FINISH',
+            target_model='Tournament',
+            details=f'Force finished tournament: {tournament.name} (ID: {pk})',
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+        
+        messages.success(request, f'Tournament "{tournament.name}" has been marked as finished.')
+    
+    return redirect('custom_admin:tournament_list')
+
+
+@admin_required
+def admin_user_list(request):
+    """
+    User Management View
+    Features: Search, Pagination
+    """
+    query = request.GET.get('q', '')
+    
+    users = User.objects.order_by('-date_joined')
+    
+    # Search
+    if query:
+        users = users.filter(
+            Q(username__icontains=query) | 
+            Q(email__icontains=query)
+        )
+        
+    # Pagination
+    paginator = Paginator(users, 15)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'query': query,
+        'section': 'users',
+    }
+    return render(request, 'custom_admin/user_list.html', context)
+
+
+@admin_required
+def admin_ban_user(request, pk):
+    """Ban a user (set is_active to False)"""
+    if request.method == 'POST':
+        user = get_object_or_404(User, pk=pk)
+        
+        # Don't allow banning superusers
+        if user.is_superuser:
+            messages.error(request, 'Cannot ban a superuser.')
+            return redirect('custom_admin:user_list')
+        
+        user.is_active = False
+        user.save()
+        
+        # Log the action
+        AuditLog.objects.create(
+            user=request.user,
+            action='BAN',
+            target_model='User',
+            details=f'Banned user: {user.username} (ID: {pk})',
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+        
+        messages.success(request, f'User "{user.username}" has been banned.')
+    
+    return redirect('custom_admin:user_list')
+
+
+@admin_required
+def admin_unban_user(request, pk):
+    """Unban a user (set is_active to True)"""
+    if request.method == 'POST':
+        user = get_object_or_404(User, pk=pk)
+        
+        user.is_active = True
+        user.save()
+        
+        # Log the action
+        AuditLog.objects.create(
+            user=request.user,
+            action='UNBAN',
+            target_model='User',
+            details=f'Unbanned user: {user.username} (ID: {pk})',
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+        
+        messages.success(request, f'User "{user.username}" has been unbanned.')
+    
+    return redirect('custom_admin:user_list')
+
+
+@admin_required
+def admin_delete_user(request, pk):
+    """Delete a user permanently"""
+    if request.method == 'POST':
+        user = get_object_or_404(User, pk=pk)
+        
+        # Don't allow deleting superusers
+        if user.is_superuser:
+            messages.error(request, 'Cannot delete a superuser.')
+            return redirect('custom_admin:user_list')
+        
+        username = user.username
+        
+        # Log the action
+        AuditLog.objects.create(
+            user=request.user,
+            action='DELETE',
+            target_model='User',
+            details=f'Deleted user: {username} (ID: {pk})',
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+        
+        user.delete()
+        messages.success(request, f'User "{username}" has been permanently deleted.')
+    
+    return redirect('custom_admin:user_list')
+
+
+@admin_required
+def admin_audit_logs(request):
+    """View audit logs"""
+    logs = AuditLog.objects.select_related('user').order_by('-created_at')
+    
+    paginator = Paginator(logs, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'section': 'audit_logs',
+    }
+    return render(request, 'custom_admin/audit_logs.html', context)
+
+
+@admin_required
+def admin_reports(request):
+    """View and manage reports"""
+    status_filter = request.GET.get('status', '')
+    
+    reports = Report.objects.select_related('reporter', 'target_user', 'target_tournament').order_by('-created_at')
+    
+    if status_filter:
+        reports = reports.filter(status=status_filter)
+    
+    paginator = Paginator(reports, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'status_filter': status_filter,
+        'section': 'reports',
+    }
+    return render(request, 'custom_admin/reports.html', context)
+
+
+@admin_required
+def admin_resolve_report(request, pk):
+    """Mark a report as resolved"""
+    if request.method == 'POST':
+        report = get_object_or_404(Report, pk=pk)
+        report.status = 'resolved'
+        report.save()
+        
+        AuditLog.objects.create(
+            user=request.user,
+            action='RESOLVE_REPORT',
+            target_model='Report',
+            details=f'Resolved report #{pk}',
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+        
+        messages.success(request, f'Report #{pk} has been resolved.')
+    
+    return redirect('custom_admin:reports')
+
+
+@admin_required
+def admin_dismiss_report(request, pk):
+    """Dismiss a report"""
+    if request.method == 'POST':
+        report = get_object_or_404(Report, pk=pk)
+        report.status = 'dismissed'
+        report.save()
+        
+        AuditLog.objects.create(
+            user=request.user,
+            action='DISMISS_REPORT',
+            target_model='Report',
+            details=f'Dismissed report #{pk}',
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+        
+        messages.success(request, f'Report #{pk} has been dismissed.')
+    
+    return redirect('custom_admin:reports')
+

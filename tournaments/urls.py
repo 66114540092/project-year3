@@ -18,4 +18,9 @@ urlpatterns = [
 
     path("<int:pk>/summary/", views.summary, name="summary"),
     path("<int:pk>/comment/", views.add_comment, name="add_comment"),
+    
+    # AJAX endpoints for real-time play
+    path("<int:pk>/api/vote-update/", views.vote_update, name="vote_update"),
+    path("<int:pk>/api/vote-submit/", views.vote_submit, name="vote_submit"),
 ]
+

@@ -27,7 +27,8 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -189,7 +190,7 @@ html, body {
 
 .bh-card {
   background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.18), transparent 55%),
-              radial-gradient(circle at bottom right, rgba(15, 23, 42, 0.95), #020617);
+    radial-gradient(circle at bottom right, rgba(15, 23, 42, 0.95), #020617);
   border-radius: var(--radius-lg);
   border: 1px solid rgba(31, 41, 55, 0.9);
   padding: 1.3rem 1.5rem;
@@ -290,7 +291,7 @@ html, body {
   padding: 0.55rem 0.8rem;
   border-radius: 0.7rem;
   border: 1px solid rgba(55, 65, 81, 0.9);
-  background: radial-gradient(circle at top left, rgba(31, 41, 55, 0.9), #020617);
+  background: #0f172a;
   color: var(--text-main);
   font-size: 0.9rem;
   outline: none;
@@ -302,7 +303,31 @@ html, body {
 .bh-select:focus {
   border-color: rgba(59, 130, 246, 0.85);
   box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.8);
-  background: radial-gradient(circle at top left, rgba(55, 65, 81, 0.95), #020617);
+  background: #1e293b;
+}
+
+.bh-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 1.2em;
+  padding-right: 2.5rem;
+  cursor: pointer;
+}
+
+.bh-select option {
+  background: #1e293b;
+  color: #e5e7eb;
+  padding: 0.5rem;
+}
+
+.bh-select option:hover,
+.bh-select option:checked {
+  background: #3b82f6;
+  color: white;
 }
 
 .bh-textarea {
@@ -439,4 +464,95 @@ html, body {
   border-top: 1px solid rgba(31, 41, 55, 0.9);
   margin-top: 2.5rem;
   opacity: 0.75;
+}
+
+/* ---------- Custom Dropdown Component ---------- */
+
+.bh-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.bh-dropdown-toggle {
+  width: 100%;
+  padding: 0.55rem 2.5rem 0.55rem 0.8rem;
+  border-radius: 0.7rem;
+  border: 1px solid rgba(55, 65, 81, 0.9);
+  background: #0f172a;
+  color: var(--text-main);
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.bh-dropdown-toggle:focus,
+.bh-dropdown-toggle:hover {
+  border-color: rgba(59, 130, 246, 0.85);
+  background: #1e293b;
+}
+
+.bh-dropdown-toggle::after {
+  content: '▼';
+  position: absolute;
+  right: 0.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.6rem;
+  color: var(--text-soft);
+  transition: transform 0.2s ease;
+}
+
+.bh-dropdown.open .bh-dropdown-toggle::after {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.bh-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 0.3rem;
+  background: #1e293b;
+  border: 1px solid rgba(55, 65, 81, 0.9);
+  border-radius: 0.7rem;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+  display: none;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.bh-dropdown.open .bh-dropdown-menu {
+  display: block;
+}
+
+.bh-dropdown-item {
+  padding: 0.55rem 0.8rem;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: background 0.1s ease;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.bh-dropdown-item:hover {
+  background: rgba(59, 130, 246, 0.3);
+}
+
+.bh-dropdown-item.selected {
+  background: #3b82f6;
+  color: white;
+}
+
+.bh-dropdown-item:first-child {
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.bh-dropdown-item:last-child {
+  border-radius: 0 0 0.5rem 0.5rem;
 }

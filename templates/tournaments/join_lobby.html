@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Join · {{ tournament.name }}{% endblock %}
+
+{% block content %}
+<style>
+    .join-lobby-container {
+        max-width: 500px;
+        margin: 4rem auto;
+        padding: 2rem;
+    }
+
+    .join-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 24px;
+        padding: 3rem 2rem;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(102, 126, 234, 0.4);
+    }
+
+    .tournament-name {
+        font-size: 2rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 1rem;
+    }
+
+    .instruction {
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 2rem;
+        font-size: 0.95rem;
+    }
+
+    .nickname-input {
+        width: 100%;
+        padding: 1.25rem;
+        font-size: 1.2rem;
+        font-weight: 600;
+        text-align: center;
+        border: none;
+        border-radius: 16px;
+        background: white;
+        color: #667eea;
+        margin-bottom: 1.5rem;
+    }
+
+    .join-btn {
+        width: 100%;
+        padding: 1.25rem;
+        font-size: 1.2rem;
+        font-weight: 700;
+        border: none;
+        border-radius: 16px;
+        background: white;
+        color: #667eea;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+
+    .join-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+</style>
+
+<div class="join-lobby-container">
+    <div class="join-card">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🎮</div>
+        <h1 class="tournament-name">{{ tournament.name }}</h1>
+        <p class="instruction">Enter your name to join</p>
+
+        {% if messages %}
+        {% for message in messages %}
+        <div
+            style="background: rgba(255,255,255,0.2); padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; color: white;">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <input type="text" name="nickname" class="nickname-input" placeholder="Your name" maxlength="50" required
+                autofocus {% if user.is_authenticated %}value="{{ user.username }}" {% endif %}>
+            <button type="submit" class="join-btn">
+                Join Tournament
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

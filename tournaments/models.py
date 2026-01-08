@@ -16,10 +16,23 @@ class Tournament(models.Model):
         (8, "8"),
         (16, "16"),
     ]
+    
+    CATEGORY_CHOICES = [
+        ("gaming", "Gaming"),
+        ("sports", "Sports"),
+        ("music", "Music"),
+        ("movies", "Movies"),
+        ("anime", "Anime"),
+        ("food", "Food"),
+        ("fashion", "Fashion"),
+        ("tech", "Technology"),
+        ("art", "Art & Design"),
+        ("other", "Other"),
+    ]
 
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    category = models.CharField(max_length=100, blank=True)
+    category = models.CharField(max_length=100, choices=CATEGORY_CHOICES, default="other")
     language = models.CharField(max_length=50, blank=True)
     thumbnail = models.ImageField(upload_to="tournament_thumbnails/", blank=True, null=True)
 

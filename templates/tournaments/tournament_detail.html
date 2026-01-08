@@ -4,109 +4,170 @@
 {% block title %}{{ tournament.name }} · BattleHub{% endblock %}
 
 {% block content %}
-  <h1 class="bh-page-title">{{ tournament.name }}</h1>
-  <p class="bh-page-subtitle">
-    Status: {{ tournament.get_status_display|default:tournament.status|capfirst }} ·
-    Created {{ tournament.created_at|date:"Y-m-d H:i" }}
-  </p>
+<!-- Header -->
+<div class="mb-6">
+  <a href="{% url 'tournaments:tournament_list' %}"
+    class="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white transition mb-4">
+    <i class="fas fa-arrow-left"></i>
+    Back to Tournaments
+  </a>
+</div>
 
-  <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+<!-- Tournament Header Card -->
+<div class="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 mb-6">
+  <div class="flex flex-col md:flex-row gap-6">
+    <!-- Thumbnail -->
     {% if tournament.thumbnail %}
-      <img src="{{ tournament.thumbnail.url }}" alt="{{ tournament.name }} thumbnail" style="height:180px;border-radius:8px;object-fit:cover;border:1px solid #ddd;">
-    {% endif %}
-
-    {% if user == tournament.created_by %}
-      {% if tournament.status != 'finished' %}
-        <a href="{% url 'tournaments:tournament_update' tournament.pk %}" class="bh-btn bh-btn-sm">Edit</a>
-      {% else %}
-        <span style="font-size:0.9rem;color:#666;">(Finished — editing disabled)</span>
-      {% endif %}
-      <form method="post" action="{% url 'tournaments:tournament_delete' tournament.pk %}" style="display:inline; margin-left:8px;">
-        {% csrf_token %}
-        <button type="submit" class="bh-btn bh-btn-sm bh-btn-danger">Delete</button>
-      </form>
-    {% endif %}
-  </div>
-
-  <section class="bh-match-layout">
-    <div class="bh-match-card">
-      <h2 class="bh-section-title">Tournament status</h2>
-
-      <p>Current status: <strong>{{ tournament.get_status_display|default:tournament.status|capfirst }}</strong></p>
-      {% if tournament.status == 'open' %}
-        <p><a href="{% url 'tournaments:play' tournament.pk %}">Go to Play</a></p>
-      {% elif tournament.status == 'finished' %}
-        <p><a href="{% url 'tournaments:summary' tournament.pk %}">View summary</a></p>
-      {% endif %}
-
+    <img src="{{ tournament.thumbnail.url }}" alt="{{ tournament.name }}"
+      class="w-full md:w-48 h-48 object-cover rounded-xl border border-slate-600">
+    {% else %}
+    <div
+      class="w-full md:w-48 h-48 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center">
+      <i class="fas fa-trophy text-5xl text-white/60"></i>
     </div>
+    {% endif %}
 
-    <div class="bh-match-card">
-      <h2 class="bh-section-title">Participants</h2>
+    <!-- Info -->
+    <div class="flex-1">
+      <h1 class="text-2xl font-bold text-white mb-2">{{ tournament.name }}</h1>
 
-      {% if competitors %}
-        <div style="display:flex; flex-direction:column; gap:.65rem; margin-bottom:.9rem;">
-          {% for p in competitors %}
-            <div style="display:flex; align-items:center; gap:.7rem;">
-              {% if p.image %}
-                <img src="{{ p.image.url }}" alt="{{ p.name }}"
-                     style="width:44px;height:44px;object-fit:cover;border-radius:0.9rem;border:1px solid rgba(55,65,81,0.9);">
-              {% else %}
-                <div style="width:44px;height:44px;border-radius:0.9rem;background:#020617;border:1px dashed rgba(55,65,81,0.9);display:flex;align-items:center;justify-content:center;font-size:.75rem;color:var(--text-soft);">
-                  No image
-                </div>
-              {% endif %}
-              <div>
-                <div class="bh-contestant-name" style="font-size:.9rem;">{{ p.name }}</div>
-              </div>
-            </div>
-          {% endfor %}
-        </div>
-      {% else %}
-        <p class="bh-empty">No participants yet.</p>
+      <div class="flex flex-wrap items-center gap-4 text-sm text-gray-400 mb-4">
+        <!-- Status Badge -->
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium
+          {% if tournament.status == 'open' %}bg-green-900/50 text-green-400 border border-green-500/30
+          {% elif tournament.status == 'draft' %}bg-yellow-900/50 text-yellow-400 border border-yellow-500/30
+          {% elif tournament.status == 'finished' %}bg-blue-900/50 text-blue-400 border border-blue-500/30
+          {% else %}bg-slate-700 text-gray-300{% endif %}">
+          {% if tournament.status == 'open' %}<i class="fas fa-circle text-xs animate-pulse"></i>
+          {% elif tournament.status == 'draft' %}<i class="fas fa-pen text-xs"></i>
+          {% elif tournament.status == 'finished' %}<i class="fas fa-flag-checkered text-xs"></i>{% endif %}
+          {{ tournament.get_status_display|default:tournament.status|capfirst }}
+        </span>
+
+        <span><i class="fas fa-users mr-1"></i>{{ competitors|length }}/{{ tournament.bracket_size }} competitors</span>
+        <span><i class="fas fa-calendar mr-1"></i>{{ tournament.created_at|date:"M d, Y" }}</span>
+      </div>
+
+      {% if tournament.description %}
+      <p class="text-gray-400 mb-4">{{ tournament.description }}</p>
       {% endif %}
 
-      {% if user == tournament.created_by and tournament.status == 'draft' %}
-        <p><a href="{% url 'tournaments:add_competitors' tournament.pk %}">Add participants</a></p>
-      {% endif %}
-
-      <div class="bh-comments">
-        <h2 class="bh-section-title">Comments</h2>
-
-        {% if comments %}
-          {% for c in comments %}
-            <article class="bh-comment-item">
-              <div class="bh-comment-meta">
-                <span>{{ c.user.username }}</span>
-                <span>{{ c.created_at|date:"Y-m-d H:i" }}</span>
-              </div>
-              <div class="bh-comment-text">{{ c.text }}</div>
-            </article>
-          {% endfor %}
-        {% else %}
-          <p class="bh-empty">No comments yet.</p>
+      <!-- Action Buttons -->
+      <div class="flex flex-wrap gap-3">
+        {% if tournament.status == 'open' %}
+        <a href="{% url 'tournaments:play' tournament.pk %}"
+          class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-semibold rounded-xl transition shadow-lg">
+          <i class="fas fa-play"></i>Play Now
+        </a>
+        {% elif tournament.status == 'finished' %}
+        <a href="{% url 'tournaments:summary' tournament.pk %}"
+          class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl transition">
+          <i class="fas fa-chart-bar"></i>View Results
+        </a>
         {% endif %}
 
-        {% if user.is_authenticated %}
-          <form method="post" action="{% url 'tournaments:add_comment' tournament.pk %}" style="margin-top:.7rem;">
-            {% csrf_token %}
-            <div class="bh-form-group">
-              {{ comment_form.text|add_class:"bh-textarea" }}
-            </div>
-            <button type="submit" name="add_comment" class="bh-btn bh-btn-sm">
-              Post comment
-            </button>
-          </form>
-        {% else %}
-          <p class="bh-empty">
-            Log in to comment.
-          </p>
+        {% if user == tournament.created_by %}
+        {% if tournament.status == 'draft' %}
+        <a href="{% url 'tournaments:add_competitors' tournament.pk %}"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-xl transition">
+          <i class="fas fa-user-plus"></i>Add Participants
+        </a>
+        {% endif %}
+        {% if tournament.status != 'finished' %}
+        <a href="{% url 'tournaments:tournament_update' tournament.pk %}"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition">
+          <i class="fas fa-edit"></i>Edit
+        </a>
+        {% endif %}
+        <form method="post" action="{% url 'tournaments:tournament_delete' tournament.pk %}" class="inline"
+          onsubmit="return confirm('Delete this tournament?');">
+          {% csrf_token %}
+          <button type="submit"
+            class="inline-flex items-center gap-2 px-4 py-2 bg-red-900/50 hover:bg-red-800 text-red-400 hover:text-red-300 border border-red-500/30 rounded-xl transition">
+            <i class="fas fa-trash"></i>Delete
+          </button>
+        </form>
         {% endif %}
       </div>
     </div>
-  </section>
-
-  <div style="margin-top:1.3rem;">
-    <a href="{% url 'tournaments:tournament_list' %}" class="bh-nav-link">← Back to list</a>
   </div>
+</div>
+
+<!-- Content Grid -->
+<div class="grid lg:grid-cols-2 gap-6">
+  <!-- Participants Card -->
+  <div class="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6">
+    <h2 class="text-lg font-bold text-white mb-4">
+      <i class="fas fa-users text-blue-400 mr-2"></i>Participants
+    </h2>
+
+    {% if competitors %}
+    <div class="space-y-3 max-h-96 overflow-y-auto pr-2">
+      {% for p in competitors %}
+      <div class="flex items-center gap-3 p-3 bg-slate-900/50 rounded-xl border border-slate-700/50">
+        {% if p.image %}
+        <img src="{{ p.image.url }}" alt="{{ p.name }}"
+          class="w-12 h-12 object-cover rounded-lg border border-slate-600">
+        {% else %}
+        <div class="w-12 h-12 bg-slate-700 rounded-lg flex items-center justify-center">
+          <i class="fas fa-user text-gray-500"></i>
+        </div>
+        {% endif %}
+        <span class="text-white font-medium">{{ p.name }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-8 text-gray-500">
+      <i class="fas fa-user-slash text-3xl mb-3 opacity-50"></i>
+      <p>No participants yet.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Comments Card -->
+  <div class="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6">
+    <h2 class="text-lg font-bold text-white mb-4">
+      <i class="fas fa-comments text-green-400 mr-2"></i>Comments
+    </h2>
+
+    {% if comments %}
+    <div class="space-y-4 max-h-64 overflow-y-auto pr-2 mb-4">
+      {% for c in comments %}
+      <div class="p-3 bg-slate-900/50 rounded-xl border border-slate-700/50">
+        <div class="flex items-center gap-2 text-sm mb-2">
+          <span class="text-blue-400 font-medium">{{ c.user.username }}</span>
+          <span class="text-gray-500">·</span>
+          <span class="text-gray-500">{{ c.created_at|date:"M d, Y H:i" }}</span>
+        </div>
+        <p class="text-gray-300 text-sm">{{ c.text }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-6 text-gray-500 mb-4">
+      <i class="fas fa-comment-slash text-2xl mb-2 opacity-50"></i>
+      <p>No comments yet.</p>
+    </div>
+    {% endif %}
+
+    <!-- Comment Form -->
+    {% if user.is_authenticated %}
+    <form method="post" action="{% url 'tournaments:add_comment' tournament.pk %}">
+      {% csrf_token %}
+      <textarea name="text" rows="3" required
+        class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-gray-500 focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none transition resize-none"
+        placeholder="Write a comment..."></textarea>
+      <button type="submit" name="add_comment"
+        class="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white font-medium rounded-xl transition">
+        <i class="fas fa-paper-plane"></i>Post Comment
+      </button>
+    </form>
+    {% else %}
+    <p class="text-center text-gray-500 text-sm">
+      <a href="{% url 'accounts:login' %}" class="text-blue-400 hover:text-blue-300">Sign in</a> to comment.
+    </p>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}

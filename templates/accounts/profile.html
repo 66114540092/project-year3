@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Profile – {{ profile_user.username }} · BattleHub{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Profile Header -->
+    <div class="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-8 mb-8">
+        <div class="flex items-center justify-between flex-wrap gap-6">
+            <div class="flex items-center gap-6">
+                <!-- Avatar -->
+                <div class="w-24 h-24 rounded-full bg-white/20 border-4 border-purple-400/50 flex items-center justify-center overflow-hidden shadow-lg"
+                    style="box-shadow: 0 0 30px rgba(139, 92, 246, 0.5);">
+                    {% if profile.avatar %}
+                    <img src="{{ profile.avatar.url }}" alt="Avatar" class="w-full h-full object-cover">
+                    {% else %}
+                    <i class="fas fa-user text-5xl text-white/80"></i>
+                    {% endif %}
+                </div>
+                <!-- User Info -->
+                <div>
+                    <h1 class="text-3xl font-bold text-white mb-1">{{ profile_user.username }}</h1>
+                    {% if profile.bio %}
+                    <p class="text-purple-200 mb-2 max-w-md">{{ profile.bio }}</p>
+                    {% endif %}
+                    <p class="text-purple-300 text-sm">
+                        <i class="fas fa-calendar-alt mr-2"></i>
+                        Member since {{ profile_user.date_joined|date:"F Y" }}
+                    </p>
+                </div>
+            </div>
+            <!-- Edit Button -->
+            <a href="{% url 'accounts:edit_profile' %}"
+                class="px-5 py-3 bg-white/20 hover:bg-white/30 border-2 border-white/30 text-white font-semibold rounded-xl transition backdrop-blur-sm">
+                <i class="fas fa-edit mr-2"></i>Edit Profile
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 text-center">
+            <div class="text-3xl font-bold text-blue-400 mb-2">
+                {{ user_tournaments.count }}
+            </div>
+            <div class="text-gray-400 text-sm">
+                <i class="fas fa-trophy mr-1"></i>Tournaments Created
+            </div>
+        </div>
+
+        <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 text-center">
+            <div class="text-3xl font-bold text-green-400 mb-2">
+                {{ profile_user.match_votes.count }}
+            </div>
+            <div class="text-gray-400 text-sm">
+                <i class="fas fa-vote-yea mr-1"></i>Votes Cast
+            </div>
+        </div>
+
+        <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 text-center">
+            <div class="text-3xl font-bold text-purple-400 mb-2">
+                {% if profile_user.is_staff %}Admin{% else %}Member{% endif %}
+            </div>
+            <div class="text-gray-400 text-sm">
+                <i class="fas fa-user-tag mr-1"></i>Account Type
+            </div>
+        </div>
+    </div>
+
+    <!-- My Tournaments Section -->
+    <div class="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 mb-8">
+        <h2 class="text-xl font-bold text-white mb-6">
+            <i class="fas fa-trophy text-yellow-400 mr-2"></i>My Tournaments
+        </h2>
+
+        {% if user_tournaments %}
+        <div class="space-y-4">
+            {% for t in user_tournaments %}
+            <a href="{% url 'tournaments:tournament_detail' t.pk %}"
+                class="flex items-center gap-4 p-4 bg-slate-900/50 border border-slate-700/50 rounded-xl hover:border-blue-500/50 hover:bg-slate-800/50 transition">
+                <!-- Thumbnail -->
+                {% if t.thumbnail %}
+                <img src="{{ t.thumbnail.url }}" alt="{{ t.name }}" class="w-16 h-16 object-cover rounded-lg">
+                {% else %}
+                <div
+                    class="w-16 h-16 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-trophy text-2xl text-white/80"></i>
+                </div>
+                {% endif %}
+
+                <!-- Info -->
+                <div class="flex-1 min-w-0">
+                    <h3 class="font-semibold text-white truncate">{{ t.name }}</h3>
+                    <div class="flex items-center gap-4 text-sm text-gray-400 mt-1">
+                        <span
+                            class="{% if t.status == 'open' %}text-green-400{% elif t.status == 'draft' %}text-yellow-400{% else %}text-gray-400{% endif %}">
+                            {{ t.get_status_display }}
+                        </span>
+                        <span>{{ t.competitors.count }}/{{ t.bracket_size }} players</span>
+                    </div>
+                </div>
+
+                <!-- Arrow -->
+                <i class="fas fa-chevron-right text-gray-500"></i>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-12 text-gray-500">
+            <i class="fas fa-gamepad text-4xl mb-4 opacity-50"></i>
+            <p class="mb-4">You haven't created any tournaments yet.</p>
+            <a href="{% url 'tournaments:tournament_create' %}"
+                class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl transition">
+                <i class="fas fa-plus"></i>Create Your First Tournament
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Account Info -->
+    <div class="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6">
+        <h2 class="text-xl font-bold text-white mb-6">
+            <i class="fas fa-cog text-gray-400 mr-2"></i>Account Settings
+        </h2>
+        <div class="space-y-4 text-sm">
+            <div class="flex justify-between items-center py-3 border-b border-slate-700/50">
+                <span class="text-gray-400">Username</span>
+                <span class="text-white font-medium">{{ profile_user.username }}</span>
+            </div>
+            <div class="flex justify-between items-center py-3 border-b border-slate-700/50">
+                <span class="text-gray-400">Email</span>
+                <span class="text-white font-medium">{{ profile_user.email|default:"Not set" }}</span>
+            </div>
+            <div class="flex justify-between items-center py-3 border-b border-slate-700/50">
+                <span class="text-gray-400">Joined</span>
+                <span class="text-white font-medium">{{ profile_user.date_joined|date:"Y-m-d" }}</span>
+            </div>
+            <div class="flex justify-between items-center py-3">
+                <span class="text-gray-400">Password</span>
+                <a href="{% url 'accounts:password_change' %}"
+                    class="text-yellow-400 hover:text-yellow-300 font-medium transition">
+                    <i class="fas fa-key mr-1"></i>Change Password
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

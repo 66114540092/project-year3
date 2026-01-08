@@ -1,61 +1,330 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container py-4" style="max-width: 900px;">
-  <h2>Summary – {{ tournament.name }}</h2>
-  <p class="text-muted">
-    Created {{ tournament.created_at|date:"Y-m-d H:i" }} ·
-    Status: {{ tournament.status|upper }}
-  </p>
+<style>
+  .summary-container {
+    max-width: 1000px;
+    margin: 2rem auto;
+    padding: 2rem 1rem;
+  }
 
+  /* Champion Section */
+  .champion-section {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 193, 7, 0.15) 100%);
+    border: 2px solid rgba(255, 215, 0, 0.4);
+    border-radius: 24px;
+    padding: 3rem;
+    margin-bottom: 3rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .champion-section::before {
+    content: '🎊';
+    position: absolute;
+    top: -20px;
+    left: 10%;
+    font-size: 4rem;
+    opacity: 0.3;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .champion-section::after {
+    content: '🎉';
+    position: absolute;
+    bottom: -20px;
+    right: 10%;
+    font-size: 4rem;
+    opacity: 0.3;
+    animation: float 3s ease-in-out infinite 1.5s;
+  }
+
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  .champion-badge {
+    display: inline-block;
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+
+    0%,
+    100% {
+      transform: scale(1);
+    }
+
+    50% {
+      transform: scale(1.1);
+    }
+  }
+
+  .champion-title {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: #ffd700;
+    margin-bottom: 2rem;
+    text-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+  }
+
+  .champion-card {
+    max-width: 400px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .champion-image {
+    width: 100%;
+    height: 350px;
+    object-fit: cover;
+  }
+
+  .champion-name {
+    padding: 1.5rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  /* Tournament Info */
+  .tournament-info {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .info-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 1rem;
+  }
+
+  .info-meta {
+    color: #aaa;
+    font-size: 0.95rem;
+  }
+
+  /* Rounds Section */
+  .rounds-section {
+    margin-bottom: 2rem;
+  }
+
+  .round-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .round-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #667eea;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+  }
+
+  .match-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+  }
+
+  .match-item:hover {
+    border-color: rgba(102, 126, 234, 0.3);
+    transform: translateX(5px);
+  }
+
+  .match-vs {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 0.75rem;
+  }
+
+  .match-votes {
+    color: #aaa;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .match-winner {
+    display: inline-block;
+    padding: 0.4rem 0.9rem;
+    background: rgba(76, 175, 80, 0.2);
+    color: #4caf50;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .empty-champion {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    color: #aaa;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+  }
+
+  .action-btn {
+    padding: 0.875rem 2rem;
+    border-radius: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.3s ease;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+    color: white;
+  }
+
+  @media (max-width: 768px) {
+    .champion-section {
+      padding: 2rem 1.5rem;
+    }
+
+    .champion-title {
+      font-size: 1.8rem;
+    }
+
+    .action-buttons {
+      flex-direction: column;
+    }
+  }
+</style>
+
+<div class="summary-container">
+  <!-- Tournament Info -->
+  <div class="tournament-info">
+    <h1 class="info-title">📊 {{ tournament.name }}</h1>
+    <div class="info-meta">
+      Created {{ tournament.created_at|date:"M d, Y" }} ·
+      Status: {{ tournament.status|upper }}
+    </div>
+  </div>
+
+  <!-- Champion Section -->
   {% if champion %}
-    <div class="card bg-dark text-light mb-4">
-      <div class="row g-0">
-        <div class="col-md-4">
-          <img src="{{ champion.image.url }}" class="img-fluid rounded-start" alt="{{ champion.name }}">
-        </div>
-        <div class="col-md-8">
-          <div class="card-body">
-            <h3 class="card-title">Champion</h3>
-            <p class="card-text">
-              {{ champion.name|default:"(no name)" }}
-            </p>
-          </div>
-        </div>
+  <div class="champion-section">
+    <div class="champion-badge">👑</div>
+    <h2 class="champion-title">Tournament Champion!</h2>
+
+    <div class="champion-card">
+      <img src="{{ champion.image.url }}" alt="{{ champion.name }}" class="champion-image">
+      <div class="champion-name">
+        {{ champion.name|default:"Champion" }}
       </div>
     </div>
+  </div>
   {% else %}
-    <p class="text-muted">No champion yet. Tournament might not be finished.</p>
+  <div class="empty-champion">
+    <p style="font-size: 3rem; margin-bottom: 1rem;">🏆</p>
+    <p style="font-size: 1.2rem;">No champion yet</p>
+    <p style="font-size: 0.9rem; margin-top: 0.5rem;">Tournament might not be finished</p>
+  </div>
   {% endif %}
 
-  {% for round_number, matches_in_round in rounds.items %}
-    <h4 class="mt-4">Round {{ round_number }}</h4>
-    <ul class="list-group mb-2">
-      {% for m in matches_in_round %}
-        <li class="list-group-item bg-dark text-light">
-          <strong>
-            {{ m.competitor1.name|default:"?" }} vs {{ m.competitor2.name|default:"?" }}
-          </strong>
-          <br>
-          <small class="text-muted">
-            Votes: {{ m.votes_for_competitor1 }} – {{ m.votes_for_competitor2 }}
-          </small>
-          {% if m.winner %}
-            <div class="mt-1">
-              Winner: {{ m.winner.name|default:"(no name)" }}
-            </div>
-          {% else %}
-            <div class="mt-1 text-muted">
-              Not finished
-            </div>
-          {% endif %}
-        </li>
-      {% endfor %}
-    </ul>
-  {% endfor %}
+  <!-- Rounds - JS Rendered -->
+  <div class="rounds-section">
+    <div id="matches-container"></div>
+  </div>
 
-  <a href="{% url 'tournaments:tournament_detail' tournament.pk %}" class="btn btn-secondary mt-3">
-    ← Back to tournament
-  </a>
+  <!-- Action Buttons -->
+  <div class="action-buttons">
+    <a href="{% url 'tournaments:tournament_detail' tournament.pk %}" class="action-btn btn-primary">
+      ← Back to Tournament
+    </a>
+  </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const matchesData = {{ matches_json| safe
+  }};
+  const container = document.getElementById('matches-container');
+
+  // Group matches by round
+  const rounds = {};
+  matchesData.forEach(m => {
+    if (!rounds[m.round_number]) rounds[m.round_number] = [];
+    rounds[m.round_number].push(m);
+  });
+
+  // Render HTML
+  let html = '';
+  const totalRounds = Math.max(...Object.keys(rounds).map(Number));
+
+  Object.keys(rounds).sort((a, b) => a - b).forEach(roundNum => {
+    const rNum = parseInt(roundNum);
+    let roundTitle = `🎯 Round ${rNum}`;
+    if (rNum === totalRounds) roundTitle = '🏆 Final Round';
+    else if (rNum === totalRounds - 1) roundTitle = '🥈 Semi-Finals';
+
+    html += `
+        <div class="round-card">
+          <h3 class="round-title">${roundTitle}</h3>
+      `;
+
+    rounds[roundNum].forEach(m => {
+      const winnerBadge = m.winner_name
+        ? `<span class="match-winner">✓ Winner: ${m.winner_name}</span>`
+        : `<span style="color: #888; font-size: 0.85rem;">Not finished</span>`;
+
+      html += `
+          <div class="match-item">
+            <div class="match-vs">
+              ${m.competitor1_name} <span style="color: #667eea;">vs</span> ${m.competitor2_name}
+            </div>
+            <div class="match-votes">
+              Votes: <strong>${m.votes1}</strong> – <strong>${m.votes2}</strong>
+            </div>
+            ${winnerBadge}
+          </div>
+        `;
+    });
+
+    html += `</div>`; // Close round-card
+  });
+
+  container.innerHTML = html;
+  });
+</script>
 {% endblock %}

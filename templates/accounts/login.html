@@ -1,9 +1,78 @@
 {% extends "base.html" %}
+{% block title %}Login · BattleHub{% endblock %}
+
 {% block content %}
-<h2>Login</h2>
-<form method="post">
-  {% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit">Login</button>
-</form>
+<div class="min-h-[70vh] flex items-center justify-center">
+  <div class="w-full max-w-md">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <div
+        class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-4 shadow-lg"
+        style="box-shadow: 0 0 30px rgba(59, 130, 246, 0.4);">
+        <i class="fas fa-gamepad text-3xl text-white"></i>
+      </div>
+      <h1 class="text-3xl font-bold text-white mb-2">Welcome Back!</h1>
+      <p class="text-gray-400">Sign in to continue to BattleHub</p>
+    </div>
+
+    <!-- Login Form -->
+    <div class="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-8 backdrop-blur-sm shadow-2xl">
+      <form method="post" class="space-y-5">
+        {% csrf_token %}
+
+        <!-- Username -->
+        <div>
+          <label for="id_username" class="block text-sm font-medium text-gray-300 mb-2">
+            <i class="fas fa-user text-gray-500 mr-2"></i>Username
+          </label>
+          <input type="text" name="username" id="id_username" required autofocus
+            class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
+            placeholder="Enter your username">
+        </div>
+
+        <!-- Password -->
+        <div>
+          <label for="id_password" class="block text-sm font-medium text-gray-300 mb-2">
+            <i class="fas fa-lock text-gray-500 mr-2"></i>Password
+          </label>
+          <input type="password" name="password" id="id_password" required
+            class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
+            placeholder="Enter your password">
+        </div>
+
+        <!-- Error Messages -->
+        {% if form.errors %}
+        <div class="bg-red-900/30 border border-red-500/50 rounded-xl p-4">
+          <p class="text-red-400 text-sm">
+            <i class="fas fa-exclamation-circle mr-2"></i>
+            Invalid username or password. Please try again.
+          </p>
+        </div>
+        {% endif %}
+
+        <!-- Submit Button -->
+        <button type="submit"
+          class="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-semibold rounded-xl transition shadow-lg"
+          style="box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);">
+          <i class="fas fa-sign-in-alt mr-2"></i>Sign In
+        </button>
+      </form>
+
+      <!-- Divider -->
+      <div class="flex items-center my-6">
+        <div class="flex-1 border-t border-slate-700"></div>
+        <span class="px-4 text-sm text-gray-500">or</span>
+        <div class="flex-1 border-t border-slate-700"></div>
+      </div>
+
+      <!-- Sign Up Link -->
+      <p class="text-center text-gray-400">
+        Don't have an account?
+        <a href="{% url 'accounts:signup' %}" class="text-blue-400 hover:text-blue-300 font-medium transition">
+          Create one <i class="fas fa-arrow-right ml-1 text-xs"></i>
+        </a>
+      </p>
+    </div>
+  </div>
+</div>
 {% endblock %}

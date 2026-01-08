@@ -1,0 +1,64 @@
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: battlehub_db
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-battlehub}
+      POSTGRES_USER: ${POSTGRES_USER:-battlehub_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-battlehub_pass}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-battlehub_user} -d ${POSTGRES_DB:-battlehub}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Django Application
+  web:
+    build: .
+    container_name: battlehub_web
+    restart: always
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn --bind 0.0.0.0:8000 battlehub.wsgi:application"
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    environment:
+      - DEBUG=False
+      - SECRET_KEY=${SECRET_KEY:-your-super-secret-key-change-this}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - DATABASE_URL=postgres://${POSTGRES_USER:-battlehub_user}:${POSTGRES_PASSWORD:-battlehub_pass}@db:5432/${POSTGRES_DB:-battlehub}
+      - POSTGRES_DB=${POSTGRES_DB:-battlehub}
+      - POSTGRES_USER=${POSTGRES_USER:-battlehub_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-battlehub_pass}
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - 8000
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: battlehub_nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_volume:/app/staticfiles:ro
+      - media_volume:/app/media:ro
+    depends_on:
+      - web
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:

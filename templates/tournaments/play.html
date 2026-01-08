@@ -1,97 +1,488 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block title %}Play · {{ tournament.name }}{% endblock %}
 
 {% block content %}
-<div class="container py-4" style="max-width: 900px;">
-  <h2 class="mb-3">Play – {{ tournament.name }}</h2>
+<style>
+    /* Dark Gaming Theme Override */
+    body {
+        background: linear-gradient(150deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+        min-height: 100vh;
+    }
 
-  {% if messages %}
-    {% for message in messages %}
-      <div class="alert alert-{{ message.tags }} py-2">{{ message }}</div>
-    {% endfor %}
-  {% endif %}
+    .play-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 1.5rem;
+    }
 
-  {% if match %}
-    <p class="text-muted mb-3">
-      Round {{ match.round_number }} / {{ tournament.total_rounds }} ·
-      Match {{ match.index_in_round }}
-    </p>
+    /* Header */
+    .play-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
 
-    <div class="row mb-3">
-      <div class="col-md-6 mb-3">
-        <div class="card bg-dark text-light h-100">
-          <img src="{{ match.competitor1.image.url }}" class="card-img-top" alt="{{ match.competitor1.name }}">
-          <div class="card-body">
-            <h5>{{ match.competitor1.name|default:"Competitor 1" }}</h5>
-            <p class="text-muted mb-1">Votes: {{ match.votes_for_competitor1 }}</p>
+    .play-title {
+        font-size: 2.5rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #f093fb, #f5576c);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.5rem;
+    }
 
-            {% if user.is_authenticated %}
-              <form method="post" action="">
-                {% csrf_token %}
-                <input type="hidden" name="choice" value="1">
-                <button type="submit" class="btn btn-primary w-100">
-                  {% if user_vote and user_vote.choice == "1" %}
-                    You voted this
-                  {% else %}
-                    Vote for this
-                  {% endif %}
-                </button>
-              </form>
-            {% else %}
-              <small class="text-muted">Login to vote.</small>
-            {% endif %}
-          </div>
+    .play-round {
+        font-size: 1.1rem;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+    }
+
+    /* Timer */
+    .timer-box {
+        background: rgba(0, 0, 0, 0.4);
+        border: 2px solid rgba(245, 87, 108, 0.5);
+        border-radius: 20px;
+        padding: 1rem 2rem;
+        display: inline-block;
+        margin-bottom: 1.5rem;
+    }
+
+    .timer {
+        font-family: 'Courier New', monospace;
+        font-size: 3rem;
+        font-weight: 900;
+        color: #f5576c;
+        text-shadow: 0 0 20px rgba(245, 87, 108, 0.5);
+    }
+
+    /* VS Arena */
+    .arena {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 1rem;
+        align-items: stretch;
+        margin-bottom: 2rem;
+    }
+
+    .competitor-card {
+        background: rgba(15, 23, 42, 0.8);
+        border: 2px solid rgba(99, 102, 241, 0.3);
+        border-radius: 24px;
+        padding: 2rem;
+        text-align: center;
+        transition: all 0.4s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .competitor-card:hover {
+        transform: translateY(-8px);
+        border-color: rgba(99, 102, 241, 0.6);
+        box-shadow: 0 20px 60px rgba(99, 102, 241, 0.3);
+    }
+
+    .competitor-card.voted {
+        border-color: #10b981 !important;
+        box-shadow: 0 0 40px rgba(16, 185, 129, 0.4) !important;
+    }
+
+    .competitor-card.voted::after {
+        content: '✓ VOTED';
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: #10b981;
+        color: white;
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .competitor-image {
+        width: 180px;
+        height: 180px;
+        border-radius: 20px;
+        object-fit: cover;
+        border: 3px solid rgba(255, 255, 255, 0.1);
+        margin: 0 auto 1.5rem;
+        display: block;
+    }
+
+    .competitor-placeholder {
+        width: 180px;
+        height: 180px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #334155, #1e293b);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 4rem;
+        margin: 0 auto 1.5rem;
+        border: 3px dashed rgba(255, 255, 255, 0.2);
+    }
+
+    .competitor-name {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 1rem;
+    }
+
+    .vote-btn {
+        width: 100%;
+        padding: 1.2rem 2rem;
+        font-size: 1.2rem;
+        font-weight: 700;
+        border: none;
+        border-radius: 16px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+
+    .vote-btn-left {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+    }
+
+    .vote-btn-right {
+        background: linear-gradient(135deg, #f093fb, #f5576c);
+        color: white;
+    }
+
+    .vote-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .vote-btn:active {
+        transform: scale(0.98);
+    }
+
+    .vote-btn.selected {
+        animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+        }
+
+        50% {
+            box-shadow: 0 0 0 15px rgba(16, 185, 129, 0);
+        }
+    }
+
+    /* VS Divider */
+    .vs-divider {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    .vs-text {
+        font-size: 3rem;
+        font-weight: 900;
+        color: #f5576c;
+        text-shadow: 0 0 30px rgba(245, 87, 108, 0.6);
+    }
+
+    /* Vote Bars */
+    .vote-stats {
+        margin-bottom: 1.5rem;
+    }
+
+    .vote-bar-container {
+        display: flex;
+        height: 40px;
+        border-radius: 20px;
+        overflow: hidden;
+        background: rgba(0, 0, 0, 0.3);
+        margin-bottom: 0.5rem;
+    }
+
+    .vote-bar-left {
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: white;
+        transition: width 0.5s ease;
+        min-width: 10%;
+    }
+
+    .vote-bar-right {
+        background: linear-gradient(90deg, #f093fb, #f5576c);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: white;
+        transition: width 0.5s ease;
+        min-width: 10%;
+    }
+
+    .vote-counts {
+        display: flex;
+        justify-content: space-between;
+        color: #94a3b8;
+        font-size: 0.9rem;
+    }
+
+    /* Action Buttons */
+    .action-bar {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .action-btn {
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+
+    .action-btn-primary {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+
+    .action-btn-secondary {
+        background: rgba(255, 255, 255, 0.1);
+        color: #94a3b8;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .action-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .arena {
+            grid-template-columns: 1fr;
+        }
+
+        .vs-divider {
+            padding: 1rem 0;
+        }
+
+        .vs-text {
+            font-size: 2rem;
+        }
+
+        .competitor-image,
+        .competitor-placeholder {
+            width: 140px;
+            height: 140px;
+        }
+    }
+</style>
+
+<div class="play-container">
+    <!-- Header -->
+    <div class="play-header">
+        <h1 class="play-title">🎮 {{ tournament.name }}</h1>
+        <div class="play-round" id="round-display">Round {{ match.round_number }} of {{ tournament.total_rounds }}</div>
+
+        <!-- Timer (for display, managed by host) -->
+        <div class="timer-box">
+            <span class="timer" id="timer">--:--</span>
         </div>
-      </div>
-
-      <div class="col-md-6 mb-3">
-        <div class="card bg-dark text-light h-100">
-          <img src="{{ match.competitor2.image.url }}" class="card-img-top" alt="{{ match.competitor2.name }}">
-          <div class="card-body">
-            <h5>{{ match.competitor2.name|default:"Competitor 2" }}</h5>
-            <p class="text-muted mb-1">Votes: {{ match.votes_for_competitor2 }}</p>
-
-            {% if user.is_authenticated %}
-              <form method="post" action="">
-                {% csrf_token %}
-                <input type="hidden" name="choice" value="2">
-                <button type="submit" class="btn btn-success w-100">
-                  {% if user_vote and user_vote.choice == "2" %}
-                    You voted this
-                  {% else %}
-                    Vote for this
-                  {% endif %}
-                </button>
-              </form>
-            {% else %}
-              <small class="text-muted">Login to vote.</small>
-            {% endif %}
-          </div>
-        </div>
-      </div>
     </div>
 
-    {% if user == tournament.created_by %}
-      <form method="post" action="{% url 'tournaments:finish_match' tournament.pk match.pk %}" class="mb-3">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-outline-warning">
-          Close this match & move forward
-        </button>
-      </form>
-      <small class="text-muted">
-        This picks the winner based on votes. In case of tie, the left competitor wins.
-      </small>
-    {% endif %}
-  {% else %}
-    <p class="text-muted">
-      No active match. Tournament may have finished.
-      <a href="{% url 'tournaments:summary' tournament.pk %}">View summary</a>
-    </p>
-  {% endif %}
+    {% if match %}
+    <!-- Vote Stats Bar -->
+    <div class="vote-stats">
+        <div class="vote-bar-container">
+            <div class="vote-bar-left" id="bar-left" style="width: 50%;">
+                <span id="pct-left">50%</span>
+            </div>
+            <div class="vote-bar-right" id="bar-right" style="width: 50%;">
+                <span id="pct-right">50%</span>
+            </div>
+        </div>
+        <div class="vote-counts">
+            <span id="votes-left">0 votes</span>
+            <span id="total-votes">0 total votes</span>
+            <span id="votes-right">0 votes</span>
+        </div>
+    </div>
 
-  <div class="mt-4">
-    <a href="{% url 'tournaments:tournament_detail' tournament.pk %}" class="btn btn-secondary">
-      ← Back to tournament
-    </a>
-  </div>
+    <!-- VS Arena -->
+    <div class="arena">
+        <!-- Competitor 1 -->
+        <div class="competitor-card" id="card-1">
+            {% if match.competitor_1.image %}
+            <img src="{{ match.competitor_1.image.url }}" alt="{{ match.competitor_1.name }}" class="competitor-image"
+                id="img-1">
+            {% else %}
+            <div class="competitor-placeholder">🎯</div>
+            {% endif %}
+            <h3 class="competitor-name" id="name-1">{{ match.competitor_1.name }}</h3>
+            <button class="vote-btn vote-btn-left" id="vote-btn-1" onclick="submitVote('1')">
+                ⚡ Vote
+            </button>
+        </div>
+
+        <!-- VS -->
+        <div class="vs-divider">
+            <div class="vs-text">VS</div>
+        </div>
+
+        <!-- Competitor 2 -->
+        <div class="competitor-card" id="card-2">
+            {% if match.competitor_2.image %}
+            <img src="{{ match.competitor_2.image.url }}" alt="{{ match.competitor_2.name }}" class="competitor-image"
+                id="img-2">
+            {% else %}
+            <div class="competitor-placeholder">🎯</div>
+            {% endif %}
+            <h3 class="competitor-name" id="name-2">{{ match.competitor_2.name }}</h3>
+            <button class="vote-btn vote-btn-right" id="vote-btn-2" onclick="submitVote('2')">
+                ⚡ Vote
+            </button>
+        </div>
+    </div>
+
+    <!-- Action Buttons (for tournament creator) -->
+    <div class="action-bar">
+        {% if user == tournament.created_by %}
+        <form method="post" action="{% url 'tournaments:finish_match' tournament.pk match.pk %}"
+            style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="action-btn action-btn-primary"
+                onclick="return confirm('End this match and declare winner by votes?')">
+                🏆 End Match & Declare Winner
+            </button>
+        </form>
+        {% endif %}
+        <a href="{% url 'tournaments:tournament_detail' tournament.pk %}" class="action-btn action-btn-secondary">
+            ← Back to Tournament
+        </a>
+    </div>
+
+    {% else %}
+    <!-- No Active Match -->
+    <div style="text-align: center; padding: 4rem; color: #94a3b8;">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">⏳</div>
+        <h2 style="font-size: 1.5rem; color: #fff; margin-bottom: 1rem;">No Active Match</h2>
+        <p>The tournament may have ended or there's no match currently in progress.</p>
+        <a href="{% url 'tournaments:summary' tournament.pk %}" class="action-btn action-btn-primary"
+            style="display: inline-block; margin-top: 1rem;">
+            View Summary
+        </a>
+    </div>
+    {% endif %}
 </div>
+
+<script>
+    const tournamentId = {{ tournament.pk }};
+    const updateUrl = "{% url 'tournaments:vote_update' tournament.pk %}";
+    const submitUrl = "{% url 'tournaments:vote_submit' tournament.pk %}";
+    const csrfToken = "{{ csrf_token }}";
+    let userVote = "{% if user_vote %}{{ user_vote.choice }}{% endif %}";
+
+    // Update UI based on user's vote
+    function updateVoteUI() {
+        document.getElementById('card-1').classList.toggle('voted', userVote === '1');
+        document.getElementById('card-2').classList.toggle('voted', userVote === '2');
+        document.getElementById('vote-btn-1').classList.toggle('selected', userVote === '1');
+        document.getElementById('vote-btn-2').classList.toggle('selected', userVote === '2');
+    }
+
+    // Submit vote via AJAX
+    function submitVote(choice) {
+        fetch(submitUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ choice: choice })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    userVote = choice;
+                    updateVoteUI();
+                    fetchUpdates(); // Immediately refresh stats
+                }
+            })
+            .catch(error => console.error('Vote error:', error));
+    }
+
+    // Fetch live updates
+    function fetchUpdates() {
+        fetch(updateUrl)
+            .then(response => response.json())
+            .then(data => {
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                    return;
+                }
+
+                if (data.match) {
+                    const m = data.match;
+                    // Update vote bars
+                    document.getElementById('bar-left').style.width = m.competitor1.percentage + '%';
+                    document.getElementById('bar-right').style.width = m.competitor2.percentage + '%';
+                    document.getElementById('pct-left').textContent = m.competitor1.percentage + '%';
+                    document.getElementById('pct-right').textContent = m.competitor2.percentage + '%';
+                    document.getElementById('votes-left').textContent = m.competitor1.votes + ' votes';
+                    document.getElementById('votes-right').textContent = m.competitor2.votes + ' votes';
+                    document.getElementById('total-votes').textContent = m.total_votes + ' total votes';
+
+                    // Update user vote display
+                    if (data.user_vote) {
+                        userVote = data.user_vote;
+                        updateVoteUI();
+                    }
+                }
+            })
+            .catch(error => console.error('Update error:', error));
+    }
+
+    // Poll every 2 seconds
+    setInterval(fetchUpdates, 2000);
+
+    // Initial update
+    updateVoteUI();
+    fetchUpdates();
+
+    // Simple timer display (30 seconds countdown, for demo)
+    let timeLeft = 30;
+    const timerEl = document.getElementById('timer');
+
+    function updateTimer() {
+        const mins = Math.floor(timeLeft / 60);
+        const secs = timeLeft % 60;
+        timerEl.textContent = mins.toString().padStart(2, '0') + ':' + secs.toString().padStart(2, '0');
+
+        if (timeLeft > 0) {
+            timeLeft--;
+            setTimeout(updateTimer, 1000);
+        } else {
+            timerEl.textContent = 'TIME!';
+            timerEl.style.color = '#10b981';
+        }
+    }
+
+    updateTimer();
+</script>
 {% endblock %}

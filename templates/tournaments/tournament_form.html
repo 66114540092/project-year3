@@ -4,73 +4,142 @@
 {% block title %}{{ form.instance.pk|yesno:"Edit tournament,Create tournament" }} · BattleHub{% endblock %}
 
 {% block content %}
-  <h1 class="bh-page-title">
-    {% if form.instance.pk %}Edit tournament{% else %}Create tournament{% endif %}
-  </h1>
-  <p class="bh-page-subtitle">
-    Define basic info and settings. Bracket & images will be handled after this.
-  </p>
+<h1 class="bh-page-title">
+  {% if form.instance.pk %}Edit tournament{% else %}Create tournament{% endif %}
+</h1>
+<p class="bh-page-subtitle">
+  Define basic info and settings. Bracket & images will be handled after this.
+</p>
 
-  <section class="bh-card">
-    <form method="post" enctype="multipart/form-data">
-      {% csrf_token %}
-      <div class="bh-grid bh-grid-2">
-        <div>
-          <div class="bh-form-group">
-            <label class="bh-label">Name</label>
-            {{ form.name|add_class:"bh-input" }}
-          </div>
+<section class="bh-card">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="bh-grid bh-grid-2">
+      <div>
+        <div class="bh-form-group">
+          <label class="bh-label">Name</label>
+          {{ form.name }}
+        </div>
 
-          <div class="bh-form-group">
-            <label class="bh-label">Description</label>
-            {{ form.description|add_class:"bh-textarea" }}
-          </div>
+        <div class="bh-form-group">
+          <label class="bh-label">Description</label>
+          {{ form.description }}
+        </div>
 
-          <div class="bh-form-group">
-            <label class="bh-label">Category</label>
-            {{ form.category|add_class:"bh-select" }}
-          </div>
-
-          <div class="bh-form-group">
-            <label class="bh-label">Language</label>
-            {{ form.language|add_class:"bh-select" }}
+        <!-- Custom Category Dropdown -->
+        <div class="bh-form-group">
+          <label class="bh-label">Category</label>
+          <div class="bh-dropdown" id="category-dropdown">
+            <button type="button" class="bh-dropdown-toggle" id="category-toggle">
+              {{ form.category.value|default:"Select category..." }}
+            </button>
+            <div class="bh-dropdown-menu" id="category-menu">
+              {% for choice in form.category.field.choices %}
+              <div class="bh-dropdown-item {% if form.category.value == choice.0 %}selected{% endif %}"
+                data-value="{{ choice.0 }}">
+                {{ choice.1 }}
+              </div>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="category" id="category-input" value="{{ form.category.value|default:'' }}">
           </div>
         </div>
 
-        <div>
-          <div class="bh-form-group">
-            <label class="bh-label">Bracket size (choices: 2,4,8,16)</label>
-            {% if form.bracket_size.field.disabled %}
-              <div class="bh-readonly">{{ form.instance.bracket_size }}</div>
-            {% else %}
-              {{ form.bracket_size|add_class:"bh-input" }}
-            {% endif %}
-          </div>
-
-          <div class="bh-form-group">
-            <label class="bh-label">Voting duration per round (seconds, optional)</label>
-            {% if form.voting_duration_seconds.field.disabled %}
-              <div class="bh-readonly">{{ form.instance.voting_duration_seconds }} seconds</div>
-            {% else %}
-              {{ form.voting_duration_seconds|add_class:"bh-input" }}
-            {% endif %}
-          </div>
-
-          <div class="bh-form-group">
-            <label class="bh-label">Thumbnail (optional)</label>
-            {{ form.thumbnail|add_class:"bh-input" }}
-          </div>
+        <div class="bh-form-group">
+          <label class="bh-label">Language</label>
+          {{ form.language }}
         </div>
       </div>
 
-      <div class="bh-form-footer">
-        <a href="{% url 'tournaments:tournament_list' %}" class="bh-btn bh-btn-outline">
-          Cancel
-        </a>
-        <button type="submit" class="bh-btn">
-          Save
-        </button>
+      <div>
+        <!-- Custom Bracket Size Dropdown -->
+        <div class="bh-form-group">
+          <label class="bh-label">Bracket size</label>
+          <div class="bh-dropdown" id="bracket-dropdown">
+            <button type="button" class="bh-dropdown-toggle" id="bracket-toggle">
+              {{ form.bracket_size.value|default:"Select size..." }}
+            </button>
+            <div class="bh-dropdown-menu" id="bracket-menu">
+              {% for choice in form.bracket_size.field.choices %}
+              <div class="bh-dropdown-item {% if form.bracket_size.value == choice.0 %}selected{% endif %}"
+                data-value="{{ choice.0 }}">
+                {{ choice.1 }}
+              </div>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="bracket_size" id="bracket-input"
+              value="{{ form.bracket_size.value|default:'4' }}">
+          </div>
+        </div>
+
+        <div class="bh-form-group">
+          <label class="bh-label">Voting duration (seconds)</label>
+          {{ form.voting_duration_seconds }}
+        </div>
+
+        <div class="bh-form-group">
+          <label class="bh-label">Thumbnail (optional)</label>
+          {{ form.thumbnail }}
+        </div>
       </div>
-    </form>
-  </section>
+    </div>
+
+    <div class="bh-form-footer">
+      <a href="{% url 'tournaments:tournament_list' %}" class="bh-btn bh-btn-outline">
+        Cancel
+      </a>
+      <button type="submit" class="bh-btn">
+        Save
+      </button>
+    </div>
+  </form>
+</section>
+
+<script>
+  // Custom Dropdown Logic
+  document.querySelectorAll('.bh-dropdown').forEach(dropdown => {
+    const toggle = dropdown.querySelector('.bh-dropdown-toggle');
+    const menu = dropdown.querySelector('.bh-dropdown-menu');
+    const input = dropdown.querySelector('input[type="hidden"]');
+    const items = dropdown.querySelectorAll('.bh-dropdown-item');
+
+    // Toggle dropdown
+    toggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Close other dropdowns
+      document.querySelectorAll('.bh-dropdown').forEach(d => {
+        if (d !== dropdown) d.classList.remove('open');
+      });
+      dropdown.classList.toggle('open');
+    });
+
+    // Select item
+    items.forEach(item => {
+      item.addEventListener('click', () => {
+        const value = item.dataset.value;
+        const text = item.textContent.trim();
+
+        // Update toggle text
+        toggle.textContent = text;
+
+        // Update hidden input
+        input.value = value;
+
+        // Update selected state
+        items.forEach(i => i.classList.remove('selected'));
+        item.classList.add('selected');
+
+        // Close dropdown
+        dropdown.classList.remove('open');
+      });
+    });
+  });
+
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.bh-dropdown')) {
+      document.querySelectorAll('.bh-dropdown').forEach(d => d.classList.remove('open'));
+    }
+  });
+</script>
 {% endblock %}
