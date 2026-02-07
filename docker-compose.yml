@@ -26,6 +26,7 @@ services:
              python manage.py collectstatic --noinput &&
              gunicorn --bind 0.0.0.0:8000 battlehub.wsgi:application"
     volumes:
+      - .:/app
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     environment:

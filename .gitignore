@@ -44,3 +44,22 @@ error.log
 *.egg-info/
 dist/
 build/
+
+# Temp files
+temp_fix.html
+recent_logs.txt
+logs.txt
+logs_detail.txt
+debug_view.py
+deploy_fix.py
+deploy_fix_detail.py
+fix_db.sql
+
+# Backup folders
+backup_*/
+
+# Media files (user uploads)
+media/
+
+# PDF docs (too large for git)
+*.pdf

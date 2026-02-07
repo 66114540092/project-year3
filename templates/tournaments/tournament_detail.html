@@ -66,12 +66,32 @@
         </a>
         {% endif %}
 
+        {% if tournament.status == 'waiting' %}
+        {% if user.is_authenticated %}
+        <a href="{% url 'tournaments:join_lobby_confirm' tournament.pk %}"
+          class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 text-white font-semibold rounded-xl transition shadow-lg">
+          <i class="fas fa-door-open"></i>Join Lobby
+        </a>
+        {% else %}
+        <a href="{% url 'accounts:login' %}?next={% url 'tournaments:join_lobby_confirm' tournament.pk %}"
+          class="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-gray-300 font-semibold rounded-xl transition border border-slate-600">
+          <i class="fas fa-sign-in-alt"></i>Sign in to Join
+        </a>
+        {% endif %}
+        {% endif %}
+
         {% if user == tournament.created_by %}
         {% if tournament.status == 'draft' %}
         <a href="{% url 'tournaments:add_competitors' tournament.pk %}"
           class="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-xl transition">
           <i class="fas fa-user-plus"></i>Add Participants
         </a>
+        {% if competitors|length == tournament.bracket_size %}
+        <a href="{% url 'tournaments:open_lobby' tournament.pk %}"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-pink-600 hover:bg-pink-500 text-white font-medium rounded-xl transition">
+          <i class="fas fa-door-open"></i>Open Lobby
+        </a>
+        {% endif %}
         {% endif %}
         {% if tournament.status != 'finished' %}
         <a href="{% url 'tournaments:tournament_update' tournament.pk %}"
@@ -139,6 +159,22 @@
           <span class="text-blue-400 font-medium">{{ c.user.username }}</span>
           <span class="text-gray-500">·</span>
           <span class="text-gray-500">{{ c.created_at|date:"M d, Y H:i" }}</span>
+
+          <div class="ml-4 flex items-center gap-3">
+            <!-- Report Button -->
+            <button onclick="openReportModal('{{ c.pk }}')"
+              class="flex items-center gap-1 text-gray-400 hover:text-yellow-400 transition-colors" title="Report">
+              <i class="fas fa-flag"></i> <span class="text-xs">Report</span>
+            </button>
+
+            <!-- Admin Delete Button -->
+            {% if user.is_staff or user == tournament.created_by %}
+            <button onclick="deleteComment('{{ c.pk }}')"
+              class="flex items-center gap-1 text-gray-400 hover:text-red-400 transition-colors" title="Delete">
+              <i class="fas fa-trash"></i> <span class="text-xs">Delete</span>
+            </button>
+            {% endif %}
+          </div>
         </div>
         <p class="text-gray-300 text-sm">{{ c.text }}</p>
       </div>
@@ -170,4 +206,114 @@
     {% endif %}
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Report Modal -->
+<div id="report-modal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog"
+  aria-modal="true">
+  <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+    <!-- Background overlay -->
+    <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity" aria-hidden="true"
+      onclick="closeReportModal()"></div>
+
+    <!-- Modal panel -->
+    <div
+      class="inline-block align-bottom bg-slate-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-slate-700">
+      <div class="bg-slate-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div class="sm:flex sm:items-start">
+          <div
+            class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-900 sm:mx-0 sm:h-10 sm:w-10">
+            <i class="fas fa-flag text-red-400"></i>
+          </div>
+          <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+            <h3 class="text-lg leading-6 font-medium text-white" id="modal-title">
+              Report Comment
+            </h3>
+            <div class="mt-2">
+              <p class="text-sm text-gray-400 mb-2">Why are you reporting this comment?</p>
+              <textarea id="report-reason"
+                class="w-full bg-slate-700 border border-slate-600 rounded-lg p-3 text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
+                rows="3" placeholder="Spam, harassment, inappropriate content..."></textarea>
+              <input type="hidden" id="report-comment-id">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-slate-800/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-slate-700">
+        <button type="button" onclick="submitReport()"
+          class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm transition">
+          Submit Report
+        </button>
+        <button type="button" onclick="closeReportModal()"
+          class="mt-3 w-full inline-flex justify-center rounded-lg border border-slate-600 shadow-sm px-4 py-2 bg-slate-700 text-base font-medium text-gray-300 hover:text-white hover:bg-slate-600 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openReportModal(commentId) {
+    document.getElementById('report-comment-id').value = commentId;
+    document.getElementById('report-reason').value = '';
+    document.getElementById('report-modal').classList.remove('hidden');
+  }
+
+  function closeReportModal() {
+    document.getElementById('report-modal').classList.add('hidden');
+  }
+
+  function submitReport() {
+    const commentId = document.getElementById('report-comment-id').value;
+    const reason = document.getElementById('report-reason').value;
+
+    // Construct URL dynamically
+    const reportUrl = "{% url 'tournaments:report_tournament_comment' tournament.pk 0 %}".replace('0', commentId);
+
+    fetch(reportUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({ reason: reason })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          alert("Report submitted. Thank you!");
+          closeReportModal();
+        } else {
+          alert(data.error || "Failed to submit report");
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Error submitting report");
+      });
+  }
+
+  function deleteComment(commentId) {
+    if (!confirm("Are you sure you want to delete this comment?")) return;
+
+    const deleteUrl = `/admin-panel/tournament-comments/${commentId}/delete/`;
+
+    fetch(deleteUrl, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}'
+      }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          location.reload(); // Simple reload to show change
+        } else {
+          alert("Failed to delete comment");
+        }
+      });
+  }
+</script>
 {% endblock %}

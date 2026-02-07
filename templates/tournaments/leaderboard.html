@@ -1,0 +1,463 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .leaderboard-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .page-title {
+        font-size: 3rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.5rem;
+    }
+
+    .page-subtitle {
+        color: #aaa;
+        font-size: 1.1rem;
+    }
+
+    /* Stats Cards */
+    .weekly-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        border: 1px solid rgba(102, 126, 234, 0.3);
+        border-radius: 16px;
+        padding: 1.5rem;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(102, 126, 234, 0.6);
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+    }
+
+    .stat-icon {
+        font-size: 3rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #667eea;
+    }
+
+    .stat-label {
+        color: #aaa;
+        font-size: 0.9rem;
+        margin-top: 0.25rem;
+    }
+
+    /* Leaderboard Grid */
+    .leaderboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+
+    .leaderboard-section {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    .section-header {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+        padding: 1.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .section-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .section-icon {
+        font-size: 1.5rem;
+    }
+
+    .leaderboard-list {
+        padding: 1rem;
+    }
+
+    .leader-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        border-radius: 12px;
+        margin-bottom: 0.5rem;
+        background: rgba(255, 255, 255, 0.02);
+        transition: all 0.3s ease;
+    }
+
+    .leader-item:hover {
+        background: rgba(102, 126, 234, 0.1);
+        transform: translateX(5px);
+    }
+
+    .leader-rank {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        margin-right: 1rem;
+    }
+
+    .rank-1 {
+        background: linear-gradient(135deg, #ffd700, #ffaa00);
+        color: #000;
+    }
+
+    .rank-2 {
+        background: linear-gradient(135deg, #c0c0c0, #a0a0a0);
+        color: #000;
+    }
+
+    .rank-3 {
+        background: linear-gradient(135deg, #cd7f32, #b87333);
+        color: #fff;
+    }
+
+    .rank-other {
+        background: rgba(255, 255, 255, 0.1);
+        color: #aaa;
+    }
+
+    .leader-info {
+        flex: 1;
+    }
+
+    .leader-name {
+        font-weight: 600;
+        color: #fff;
+        font-size: 1rem;
+    }
+
+    .leader-meta {
+        color: #888;
+        font-size: 0.85rem;
+    }
+
+    .leader-score {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #667eea;
+    }
+
+    /* Hot Tournaments */
+    .tournament-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        border-radius: 12px;
+        margin-bottom: 0.5rem;
+        background: rgba(255, 255, 255, 0.02);
+        transition: all 0.3s ease;
+        text-decoration: none;
+    }
+
+    .tournament-item:hover {
+        background: rgba(102, 126, 234, 0.1);
+        transform: translateX(5px);
+    }
+
+    .tournament-thumb {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        object-fit: cover;
+        margin-right: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .tournament-info {
+        flex: 1;
+    }
+
+    .tournament-name {
+        font-weight: 600;
+        color: #fff;
+        font-size: 1rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .tournament-meta {
+        color: #888;
+        font-size: 0.85rem;
+    }
+
+    .tournament-votes {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #4caf50;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #888;
+    }
+
+    .empty-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    /* Hall of Fame */
+    .hall-of-fame {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%);
+        border: 1px solid rgba(255, 215, 0, 0.3);
+    }
+
+    .hall-of-fame .section-header {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 193, 7, 0.2) 100%);
+        border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+    }
+
+    .champion-image {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 1rem;
+        border: 2px solid rgba(255, 215, 0, 0.5);
+    }
+
+    @media (max-width: 768px) {
+        .page-title {
+            font-size: 2rem;
+        }
+
+        .leaderboard-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .weekly-stats {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+</style>
+
+<div class="leaderboard-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 class="page-title"><i class="fas fa-crown"></i> Leaderboard</h1>
+        <p class="page-subtitle">Top players and tournaments this week</p>
+    </div>
+
+    <!-- Weekly Stats -->
+    <div class="weekly-stats">
+        <div class="stat-card">
+            <div class="stat-icon">🏆</div>
+            <div class="stat-value">{{ weekly_finished }}</div>
+            <div class="stat-label">Tournaments Finished This Week</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🗳️</div>
+            <div class="stat-value">{{ weekly_votes }}</div>
+            <div class="stat-label">Votes This Week</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">👥</div>
+            <div class="stat-value">{{ weekly_new_users }}</div>
+            <div class="stat-label">New Users This Week</div>
+        </div>
+    </div>
+
+    <!-- Leaderboard Grid -->
+    <div class="leaderboard-grid">
+        <!-- Top Voters -->
+        <div class="leaderboard-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="section-icon">🗳️</span> Top Voters
+                </h2>
+            </div>
+            <div class="leaderboard-list">
+                {% for user in top_voters %}
+                {% if user.vote_count > 0 %}
+                <div class="leader-item">
+                    <div
+                        class="leader-rank {% if forloop.counter == 1 %}rank-1{% elif forloop.counter == 2 %}rank-2{% elif forloop.counter == 3 %}rank-3{% else %}rank-other{% endif %}">
+                        {{ forloop.counter }}
+                    </div>
+                    <div class="leader-info">
+                        <div class="leader-name">{{ user.username }}</div>
+                        <div class="leader-meta">Active voter</div>
+                    </div>
+                    <div class="leader-score">{{ user.vote_count }} votes</div>
+                </div>
+                {% endif %}
+                {% empty %}
+                <div class="empty-state">
+                    <div class="empty-icon">🗳️</div>
+                    <p>No votes yet</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Top Creators -->
+        <div class="leaderboard-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="section-icon">🎮</span> Top Creators
+                </h2>
+            </div>
+            <div class="leaderboard-list">
+                {% for user in top_creators %}
+                {% if user.tournament_count > 0 %}
+                <div class="leader-item">
+                    <div
+                        class="leader-rank {% if forloop.counter == 1 %}rank-1{% elif forloop.counter == 2 %}rank-2{% elif forloop.counter == 3 %}rank-3{% else %}rank-other{% endif %}">
+                        {{ forloop.counter }}
+                    </div>
+                    <div class="leader-info">
+                        <div class="leader-name">{{ user.username }}</div>
+                        <div class="leader-meta">Tournament creator</div>
+                    </div>
+                    <div class="leader-score">{{ user.tournament_count }} tournaments</div>
+                </div>
+                {% endif %}
+                {% empty %}
+                <div class="empty-state">
+                    <div class="empty-icon">🎮</div>
+                    <p>No tournaments yet</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Hot Tournaments -->
+        <div class="leaderboard-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="section-icon">🔥</span> Hot Tournaments
+                </h2>
+            </div>
+            <div class="leaderboard-list">
+                {% for tournament in hot_tournaments %}
+                <a href="{% url 'tournaments:tournament_detail' tournament.pk %}" class="tournament-item">
+                    {% if tournament.thumbnail %}
+                    <img src="{{ tournament.thumbnail.url }}" class="tournament-thumb" alt="{{ tournament.name }}">
+                    {% else %}
+                    <div class="tournament-thumb"
+                        style="display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🏆</div>
+                    {% endif %}
+                    <div class="tournament-info">
+                        <div class="tournament-name">{{ tournament.name }}</div>
+                        <div class="tournament-meta">{{ tournament.status|title }} · {{ tournament.bracket_size }}
+                            players</div>
+                    </div>
+                    <div class="tournament-votes">{{ tournament.total_votes }} votes</div>
+                </a>
+                {% empty %}
+                <div class="empty-state">
+                    <div class="empty-icon">🔥</div>
+                    <p>No hot tournaments yet</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Recently Finished -->
+        <div class="leaderboard-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="section-icon">✅</span> Recently Finished
+                </h2>
+            </div>
+            <div class="leaderboard-list">
+                {% for tournament in recently_finished %}
+                <a href="{% url 'tournaments:summary' tournament.pk %}" class="tournament-item">
+                    {% if tournament.thumbnail %}
+                    <img src="{{ tournament.thumbnail.url }}" class="tournament-thumb" alt="{{ tournament.name }}">
+                    {% else %}
+                    <div class="tournament-thumb"
+                        style="display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🏆</div>
+                    {% endif %}
+                    <div class="tournament-info">
+                        <div class="tournament-name">{{ tournament.name }}</div>
+                        <div class="tournament-meta">Finished {{ tournament.created_at|timesince }} ago</div>
+                    </div>
+                </a>
+                {% empty %}
+                <div class="empty-state">
+                    <div class="empty-icon">✅</div>
+                    <p>No finished tournaments yet</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Hall of Fame -->
+    <div class="leaderboard-section hall-of-fame" style="margin-bottom: 2rem;">
+        <div class="section-header">
+            <h2 class="section-title">
+                <span class="section-icon">🏅</span> Hall of Fame - Top Champions
+            </h2>
+        </div>
+        <div class="leaderboard-list">
+            {% for competitor in hall_of_fame %}
+            <div class="leader-item">
+                <div
+                    class="leader-rank {% if forloop.counter == 1 %}rank-1{% elif forloop.counter == 2 %}rank-2{% elif forloop.counter == 3 %}rank-3{% else %}rank-other{% endif %}">
+                    {{ forloop.counter }}
+                </div>
+                <img src="{{ competitor.image.url }}" class="champion-image" alt="{{ competitor.name }}">
+                <div class="leader-info">
+                    <div class="leader-name">{{ competitor.name }}</div>
+                    <div class="leader-meta">from {{ competitor.tournament.name }}</div>
+                </div>
+                <div class="leader-score" style="color: #ffd700;">{{ competitor.win_count }} wins</div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <div class="empty-icon">🏅</div>
+                <p>No champions yet - be the first!</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div style="text-align: center;">
+        <a href="{% url 'tournaments:tournament_list' %}" class="btn"
+            style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem 2rem; border-radius: 12px; text-decoration: none; font-weight: 600; display: inline-block;">
+            <i class="fas fa-arrow-left"></i> Back to Tournaments
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Join Tournament{% endblock %}
+
+{% block content %}
+<style>
+    .pin-container {
+        max-width: 500px;
+        margin: 4rem auto;
+        padding: 2rem;
+    }
+
+    .pin-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 24px;
+        padding: 3rem 2rem;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(102, 126, 234, 0.4);
+    }
+
+    .pin-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+
+    .pin-subtitle {
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 2rem;
+        font-size: 1rem;
+    }
+
+    .pin-input {
+        width: 100%;
+        padding: 1.5rem;
+        font-size: 2.5rem;
+        font-weight: 700;
+        text-align: center;
+        border: none;
+        border-radius: 16px;
+        background: white;
+        color: #667eea;
+        letter-spacing: 1rem;
+        font-family: monospace;
+        margin-bottom: 1.5rem;
+    }
+
+    .pin-input::placeholder {
+        letter-spacing: 0.5rem;
+        color: #ccc;
+        font-size: 1.2rem;
+    }
+
+    .join-btn {
+        width: 100%;
+        padding: 1.25rem;
+        font-size: 1.2rem;
+        font-weight: 700;
+        border: none;
+        border-radius: 16px;
+        background: white;
+        color: #667eea;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+
+    .join-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .error-message {
+        background: rgba(255, 100, 100, 0.2);
+        padding: 1rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        color: white;
+    }
+</style>
+
+<div class="pin-container">
+    <div class="pin-card">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">🎮</div>
+        <h1 class="pin-title">Join Game</h1>
+        <p class="pin-subtitle">Enter the game PIN shown by your host</p>
+
+        {% if messages %}
+        {% for message in messages %}
+        <div class="error-message">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <input type="text" name="pin" class="pin-input" placeholder="PIN" maxlength="6" pattern="[0-9]{6}"
+                inputmode="numeric" required autofocus oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+            <button type="submit" class="join-btn">
+                Enter
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

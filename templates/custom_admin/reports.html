@@ -79,7 +79,7 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-800">
-                {% for report in reports %}
+                {% for report in page_obj %}
                 <tr class="hover:bg-slate-800/30 transition-colors">
                     <td class="px-6 py-4">
                         <span class="font-mono text-sm text-indigo-400">#{{ report.pk }}</span>
@@ -107,7 +107,12 @@
                         {% elif report.target_match_comment %}
                         <span class="inline-flex items-center gap-1.5">
                             <i class="fa-solid fa-comment text-emerald-400"></i>
-                            Comment #{{ report.target_match_comment.pk }}
+                            Match Comment #{{ report.target_match_comment.pk }}
+                        </span>
+                        {% elif report.target_tournament_comment %}
+                        <span class="inline-flex items-center gap-1.5">
+                            <i class="fa-solid fa-comments text-green-400"></i>
+                            Tournament Comment #{{ report.target_tournament_comment.pk }}
                         </span>
                         {% else %}
                         <span class="text-slate-500">Unknown</span>
@@ -161,7 +166,7 @@
                             </form>
                         </div>
                         {% else %}
-                        <span class="text-sm text-slate-500">—</span>
+                        <span class="text-sm text-slate-500">-</span>
                         {% endif %}
                     </td>
                 </tr>

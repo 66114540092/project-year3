@@ -1,0 +1,385 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .bracket-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 2rem;
+        min-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    /* Header */
+    .bracket-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .bracket-title {
+        font-size: 2.5rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.5rem;
+    }
+
+    .round-indicator {
+        display: inline-block;
+        padding: 0.5rem 1.5rem;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border-radius: 50px;
+        color: white;
+        font-weight: 700;
+        font-size: 1.2rem;
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            transform: scale(1);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+        }
+
+        50% {
+            transform: scale(1.05);
+            box-shadow: 0 0 40px rgba(16, 185, 129, 0.8);
+        }
+    }
+
+    .countdown-timer {
+        font-size: 3rem;
+        font-weight: 900;
+        color: #fff;
+        margin-top: 1rem;
+        font-family: 'Courier New', monospace;
+        text-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+    }
+
+    /* Bracket Grid */
+    .bracket-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.75rem;
+        width: 100%;
+        overflow-x: auto;
+        padding: 1rem 0;
+    }
+
+    .round-column {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        min-width: 160px;
+    }
+
+    .round-label {
+        text-align: center;
+        font-size: 0.9rem;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Match Card */
+    .match-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 0.5rem;
+        position: relative;
+        transition: all 0.3s ease;
+        margin-bottom: 0.25rem;
+    }
+
+    .match-card.active {
+        border-color: #667eea;
+        box-shadow: 0 0 30px rgba(102, 126, 234, 0.4);
+        animation: glowPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes glowPulse {
+
+        0%,
+        100% {
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
+        }
+
+        50% {
+            box-shadow: 0 0 40px rgba(102, 126, 234, 0.7);
+        }
+    }
+
+    .match-card.finished {
+        opacity: 0.8;
+    }
+
+    .competitor-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .competitor-row.winner {
+        background: rgba(16, 185, 129, 0.15);
+        border-left: 3px solid #10b981;
+    }
+
+    .competitor-row.loser {
+        opacity: 0.5;
+    }
+
+    .competitor-thumb {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .competitor-name {
+        flex: 1;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #fff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .competitor-score {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #667eea;
+        min-width: 30px;
+        text-align: right;
+    }
+
+    .live-badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        padding: 0.2rem 0.6rem;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+        font-size: 0.7rem;
+        font-weight: 700;
+        border-radius: 10px;
+        animation: blink 1s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.5;
+        }
+    }
+
+
+
+    /* TBD Placeholder */
+    .tbd {
+        color: #64748b;
+        font-style: italic;
+    }
+
+    /* Continue Button */
+    .continue-section {
+        margin-top: 2rem;
+        text-align: center;
+    }
+
+    .continue-btn {
+        display: inline-block;
+        padding: 1rem 3rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-size: 1.2rem;
+        font-weight: 700;
+        border-radius: 50px;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        animation: slideUp 0.5s ease-out;
+    }
+
+    .continue-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        color: white;
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .bracket-wrapper {
+            flex-direction: column;
+        }
+
+        .round-column {
+            width: 100%;
+        }
+
+
+    }
+</style>
+
+<div class="bracket-container">
+    <!-- Header -->
+    <div class="bracket-header">
+        <h1 class="bracket-title">🎮 {{ tournament.name }}</h1>
+        {% if next_match %}
+        <div class="round-indicator">
+            <i class="fas fa-play"></i> ROUND {{ next_match.round_number }} STARTING...
+        </div>
+        <div class="countdown-timer" id="countdown">05</div>
+        {% else %}
+        <div class="round-indicator" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);"><i
+                class="fas fa-trophy"></i> TOURNAMENT COMPLETE!</div>
+        {% endif %}
+    </div>
+
+    <!-- Bracket View -->
+    <div class="bracket-wrapper">
+        {% for round_num, round_matches in rounds.items %}
+        <div class="round-column">
+            <div class="round-label">
+                {% if round_num == total_rounds %}
+                🏆 Final
+                {% elif round_num == total_rounds|add:"-1" %}
+                Semi-Finals
+                {% else %}
+                Round {{ round_num }}
+                {% endif %}
+            </div>
+
+            {% for match in round_matches %}
+            <div
+                class="match-card {% if match == next_match %}active{% endif %} {% if match.is_finished %}finished{% endif %}">
+                {% if match == next_match %}
+                <span class="live-badge">NEXT</span>
+                {% endif %}
+
+                <!-- Competitor 1 -->
+                <div
+                    class="competitor-row {% if match.winner == match.competitor1 %}winner{% elif match.is_finished %}loser{% endif %}">
+                    {% if match.competitor1 %}
+                    {% if match.competitor1.image %}
+                    <img src="{{ match.competitor1.image.url }}" alt="{{ match.competitor1.name }}"
+                        class="competitor-thumb">
+                    {% endif %}
+                    <span class="competitor-name">{{ match.competitor1.name|default:"Unnamed" }}</span>
+                    <span class="competitor-score">{{ match.votes_for_competitor1 }}</span>
+                    {% else %}
+                    <span class="competitor-name tbd">TBD</span>
+                    {% endif %}
+                </div>
+
+                <!-- Competitor 2 -->
+                <div
+                    class="competitor-row {% if match.winner == match.competitor2 %}winner{% elif match.is_finished %}loser{% endif %}">
+                    {% if match.competitor2 %}
+                    {% if match.competitor2.image %}
+                    <img src="{{ match.competitor2.image.url }}" alt="{{ match.competitor2.name }}"
+                        class="competitor-thumb">
+                    {% endif %}
+                    <span class="competitor-name">{{ match.competitor2.name|default:"Unnamed" }}</span>
+                    <span class="competitor-score">{{ match.votes_for_competitor2 }}</span>
+                    {% else %}
+                    <span class="competitor-name tbd">TBD</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+
+        {% endfor %}
+    </div>
+
+    <!-- Continue Button -->
+    <div class="continue-section">
+        {% if next_match %}
+        <a href="{% url 'tournaments:play' tournament.pk %}" class="continue-btn" id="continue-btn">
+            <i class="fas fa-play"></i> Continue to Match
+        </a>
+        <button onclick="pauseCountdown()" class="continue-btn" id="pause-btn"
+            style="background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); margin-left: 1rem;">
+            <i class="fas fa-pause"></i> Stay & View Bracket
+        </button>
+        {% else %}
+        <a href="{% url 'tournaments:summary' tournament.pk %}" class="continue-btn">
+            <i class="fas fa-trophy"></i> View Final Results
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+{% if next_match %}
+<script>
+    // Auto-countdown and redirect
+    let countdown = 5;
+    let isPaused = false;
+    const countdownEl = document.getElementById('countdown');
+    const continueBtn = document.getElementById('continue-btn');
+    const pauseBtn = document.getElementById('pause-btn');
+
+    const timer = setInterval(() => {
+        if (isPaused) return;
+
+        countdown--;
+        countdownEl.textContent = countdown.toString().padStart(2, '0');
+
+        if (countdown <= 0) {
+            clearInterval(timer);
+            // Auto-redirect to play page
+            window.location.href = continueBtn.href;
+        }
+    }, 1000);
+
+    // Allow manual click to skip countdown
+    continueBtn.addEventListener('click', () => {
+        clearInterval(timer);
+    });
+
+    // Pause countdown to view bracket
+    function pauseCountdown() {
+        isPaused = true;
+        clearInterval(timer);
+        countdownEl.textContent = '⏸️';
+        countdownEl.style.fontSize = '2rem';
+        pauseBtn.style.display = 'none';
+
+        // Change round indicator text
+        document.querySelector('.round-indicator').innerHTML = '<i class="fas fa-eye"></i> VIEWING BRACKET';
+    }
+</script>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,224 @@
+{% extends "custom_admin/base_admin.html" %}
+
+{% block page_title %}Support Tickets{% endblock %}
+{% block header_title %}Support Tickets{% endblock %}
+
+{% block admin_content %}
+<!-- Stats -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-slate-900 rounded-xl p-4 border border-slate-700/50">
+        <div class="flex items-center gap-3">
+            <div class="p-2 bg-indigo-500/20 rounded-lg text-indigo-400">
+                <i class="fa-solid fa-ticket"></i>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-white">{{ page_obj.paginator.count }}</p>
+                <p class="text-xs text-slate-400">Total Tickets</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="bg-slate-900 rounded-xl border border-slate-700/50 p-4 mb-6">
+    <form method="get" class="flex flex-wrap items-center gap-4">
+        <!-- Status Filter -->
+        <div class="w-48">
+            <select name="status" onchange="this.form.submit()"
+                class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer">
+                <option value="all">All Status</option>
+                <option value="open" {% if status_filter == 'open' %}selected{% endif %}>Open</option>
+                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                <option value="resolved" {% if status_filter == 'resolved' %}selected{% endif %}>Resolved</option>
+                <option value="closed" {% if status_filter == 'closed' %}selected{% endif %}>Closed</option>
+            </select>
+        </div>
+
+        <!-- Reset -->
+        <a href="{% url 'custom_admin:support_tickets' %}"
+            class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 hover:text-white transition-colors">
+            <i class="fa-solid fa-rotate-left mr-2"></i>Reset
+        </a>
+    </form>
+</div>
+
+<!-- Tickets Table -->
+<div class="bg-slate-900 rounded-xl border border-slate-700/50 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-slate-800/50">
+                <tr class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    <th class="px-6 py-4">Ticket ID</th>
+                    <th class="px-6 py-4">User</th>
+                    <th class="px-6 py-4">Subject</th>
+                    <th class="px-6 py-4">Priority</th>
+                    <th class="px-6 py-4">Status</th>
+                    <th class="px-6 py-4">Date</th>
+                    <th class="px-6 py-4 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+                {% for ticket in page_obj %}
+                <tr class="hover:bg-slate-800/30 transition-colors group">
+                    <td class="px-6 py-4">
+                        <span class="font-mono text-sm text-indigo-400">#{{ ticket.pk }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-2">
+                            <div
+                                class="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-white">
+                                {{ ticket.user.username|make_list|first|upper }}
+                            </div>
+                            <span class="text-sm text-slate-300">{{ ticket.user.username }}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <p class="text-sm text-white font-medium">{{ ticket.subject }}</p>
+                        <p class="text-xs text-slate-400 truncate max-w-xs">{{ ticket.message|truncatechars:50 }}</p>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if ticket.priority == 'high' %}
+                        <span class="text-red-400 text-xs font-bold uppercase">High</span>
+                        {% elif ticket.priority == 'medium' %}
+                        <span class="text-amber-400 text-xs font-bold uppercase">Medium</span>
+                        {% else %}
+                        <span class="text-emerald-400 text-xs font-bold uppercase">Low</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if ticket.status == 'open' %}
+                        <span
+                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                            Open
+                        </span>
+                        {% elif ticket.status == 'resolved' %}
+                        <span
+                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            Resolved
+                        </span>
+                        {% elif ticket.status == 'closed' %}
+                        <span
+                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-700/50 text-slate-400 border border-slate-600">
+                            Closed
+                        </span>
+                        {% else %}
+                        <span
+                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                            Pending
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-slate-400">
+                        {{ ticket.created_at|date:"M d, Y" }}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <button
+                            onclick="openReplyModal('{{ ticket.pk }}', '{{ ticket.subject|escapejs }}', '{{ ticket.status }}')"
+                            class="px-3 py-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-400 rounded-lg text-xs font-medium transition-colors">
+                            Reply / Update
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-6 py-16 text-center">
+                        <div class="text-slate-500">
+                            <i class="fa-solid fa-ticket text-4xl mb-4"></i>
+                            <p class="text-lg font-medium">No tickets found</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="px-6 py-4 border-t border-slate-800 bg-slate-800/30 flex items-center justify-between">
+        <div class="text-xs text-slate-400">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </div>
+        <div class="flex gap-2">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&status={{ status_filter }}"
+                class="px-3 py-1 bg-slate-800 border border-slate-700 rounded text-slate-300 hover:text-white text-xs">Previous</a>
+            {% endif %}
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&status={{ status_filter }}"
+                class="px-3 py-1 bg-slate-800 border border-slate-700 rounded text-slate-300 hover:text-white text-xs">Next</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Reply Modal -->
+<div id="reply-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center">
+    <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-lg shadow-2xl transform transition-all">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+            <h3 class="text-lg font-bold text-white">Update Ticket #<span id="modal-ticket-id"></span></h3>
+            <button onclick="closeReplyModal()" class="text-slate-400 hover:text-white">
+                <i class="fa-solid fa-times text-xl"></i>
+            </button>
+        </div>
+
+        <form id="reply-form" method="post" action="">
+            {% csrf_token %}
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase mb-2">Ticket Subject</label>
+                    <input type="text" id="modal-subject"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-slate-300"
+                        disabled>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase mb-2">Status Update</label>
+                    <select name="status" id="modal-status"
+                        class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:border-indigo-500 outline-none">
+                        <option value="open">Open</option>
+                        <option value="pending">Pending</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase mb-2">Admin Reply / Note
+                        (Optional)</label>
+                    <textarea name="reply" rows="4"
+                        class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:border-indigo-500 outline-none placeholder-slate-600"
+                        placeholder="Type your response here..."></textarea>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 border-t border-slate-800 bg-slate-800/30 flex justify-end gap-3">
+                <button type="button" onclick="closeReplyModal()"
+                    class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 text-sm font-medium transition-colors">Cancel</button>
+                <button type="submit"
+                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors">Update
+                    Ticket</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openReplyModal(id, subject, status) {
+        document.getElementById('modal-ticket-id').textContent = id;
+        document.getElementById('modal-subject').value = subject;
+        document.getElementById('modal-status').value = status;
+
+        // Update form action dynamically
+        const form = document.getElementById('reply-form');
+        form.action = `/admin-panel/support/${id}/reply/`;
+
+        document.getElementById('reply-modal').classList.remove('hidden');
+    }
+
+    function closeReplyModal() {
+        document.getElementById('reply-modal').classList.add('hidden');
+    }
+</script>
+{% endblock %}

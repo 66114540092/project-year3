@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from tournaments.models import Tournament, Comment
+from tournaments.models import Tournament, Comment, MatchComment
 
 class Report(models.Model):
     """Refined Report model for Content Moderation"""
@@ -24,12 +24,20 @@ class Report(models.Model):
         help_text="Report a specific user for behavior"
     )
     target_match_comment = models.ForeignKey(
+        MatchComment, 
+        related_name='reports', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        help_text="Report a live match chat message"
+    )
+    target_tournament_comment = models.ForeignKey(
         Comment, 
         related_name='reports', 
         on_delete=models.SET_NULL, 
         null=True, 
         blank=True,
-        help_text="Report a specific chat message"
+        help_text="Report a tournament discussion comment"
     )
     target_tournament = models.ForeignKey(
         Tournament, 

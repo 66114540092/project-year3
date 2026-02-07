@@ -1,4 +1,4 @@
-﻿{% extends "custom_admin/base_admin.html" %}
+{% extends "custom_admin/base_admin.html" %}
 
 {% block page_title %}User Management{% endblock %}
 {% block header_title %}User Management{% endblock %}
@@ -139,7 +139,7 @@
                     </td>
                     <td class="px-6 py-4 text-right">
                         <div class="flex items-center justify-end gap-2">
-                            <a href="#"
+                            <a href="{% url 'custom_admin:user_detail' u.pk %}"
                                 class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
                                 title="View Profile">
                                 <i class="fa-solid fa-eye"></i>

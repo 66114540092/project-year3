@@ -14,6 +14,7 @@ urlpatterns = [
     path('tournaments/<int:pk>/force-finish/', views.admin_force_finish_tournament, name='force_finish_tournament'),
     
     # User Management
+    path('users/<int:pk>/', views.admin_user_detail, name='user_detail'),
     path('users/<int:pk>/ban/', views.admin_ban_user, name='ban_user'),
     path('users/<int:pk>/unban/', views.admin_unban_user, name='unban_user'),
     path('users/<int:pk>/delete/', views.admin_delete_user, name='delete_user'),
@@ -25,5 +26,13 @@ urlpatterns = [
     path('reports/', views.admin_reports, name='reports'),
     path('reports/<int:pk>/resolve/', views.admin_resolve_report, name='resolve_report'),
     path('reports/<int:pk>/dismiss/', views.admin_dismiss_report, name='dismiss_report'),
+    
+    # Moderation
+    path('comments/<int:pk>/delete/', views.admin_delete_comment, name='delete_comment'),
+    path('tournament-comments/<int:pk>/delete/', views.admin_delete_tournament_comment, name='delete_tournament_comment'),
+    
+    # Support
+    path('support/', views.admin_support_tickets, name='support_tickets'),
+    path('support/<int:pk>/reply/', views.admin_reply_ticket, name='reply_ticket'),
 ]
 

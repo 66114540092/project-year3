@@ -1,11 +1,19 @@
 from django.db import models
 from django.contrib.auth.models import User
 import math
+import random
+import string
+
+
+def generate_pin_code():
+    """Generate a random 6-digit PIN code"""
+    return ''.join(random.choices(string.digits, k=6))
 
 
 class Tournament(models.Model):
     STATUS_CHOICES = [
         ("draft", "Draft"),
+        ("waiting", "Waiting Lobby"),
         ("open", "Open"),
         ("finished", "Finished"),
     ]
@@ -38,6 +46,9 @@ class Tournament(models.Model):
 
     bracket_size = models.PositiveIntegerField(choices=BRACKET_SIZE_CHOICES, default=4)
     voting_duration_seconds = models.PositiveIntegerField(default=60)
+    
+    # Lobby system fields
+    pin_code = models.CharField(max_length=6, unique=True, blank=True, null=True)
 
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="draft")
     current_round = models.PositiveIntegerField(default=1)
@@ -138,6 +149,7 @@ class Match(models.Model):
     )
 
     is_finished = models.BooleanField(default=False)
+    started_at = models.DateTimeField(null=True, blank=True)  # When match voting started
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -197,3 +209,49 @@ class Comment(models.Model):
 
     def __str__(self):
         return f"Comment by {self.user} on {self.tournament}"
+
+
+class MatchComment(models.Model):
+    """Live comments during voting on a specific match"""
+    match = models.ForeignKey(
+        Match,
+        related_name="live_comments",
+        on_delete=models.CASCADE,
+    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    text = models.CharField(max_length=200)  # Short messages only
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.user.username}: {self.text[:30]}"
+
+
+class Participant(models.Model):
+    """People who joined the tournament lobby via PIN code"""
+    tournament = models.ForeignKey(
+        Tournament,
+        related_name="participants",
+        on_delete=models.CASCADE,
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+    nickname = models.CharField(max_length=50)
+    session_key = models.CharField(max_length=100, blank=True)  # For anonymous users
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["joined_at"]
+        unique_together = [
+            ("tournament", "user"),
+            ("tournament", "session_key"),
+        ]
+
+    def __str__(self):
+        return f"{self.nickname} in {self.tournament.name}"

@@ -32,22 +32,87 @@
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
 
   <style>
-    /* Override for Tailwind compatibility */
+    /* Theme Variables */
+    :root {
+      /* Dark Theme (Default) */
+      --bg-primary: #0a0f1a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border-color: rgba(255, 255, 255, 0.1);
+      --accent: #667eea;
+      --accent-secondary: #764ba2;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --card-bg: rgba(255, 255, 255, 0.03);
+      --dropdown-bg: #1e293b;
+      --glow-blue: rgba(59, 130, 246, 0.5);
+      --glow-purple: rgba(139, 92, 246, 0.5);
+    }
+
+    /* Light Theme */
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #e2e8f0;
+      --text-primary: #1e293b;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --border-color: rgba(0, 0, 0, 0.1);
+      --accent: #4f46e5;
+      --accent-secondary: #7c3aed;
+      --success: #059669;
+      --danger: #dc2626;
+      --warning: #d97706;
+      --card-bg: #ffffff;
+      --dropdown-bg: #ffffff;
+      --glow-blue: rgba(59, 130, 246, 0.3);
+      --glow-purple: rgba(139, 92, 246, 0.3);
+    }
+
+    /* Apply theme */
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      transition: background-color 0.3s ease, color 0.3s ease;
     }
 
     /* Glow effects */
     .glow-blue {
-      box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+      box-shadow: 0 0 20px var(--glow-blue);
     }
 
     .glow-purple {
-      box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+      box-shadow: 0 0 20px var(--glow-purple);
     }
 
     .glow-gold {
       box-shadow: 0 0 15px rgba(250, 204, 21, 0.6);
+    }
+
+    /* Theme Toggle Button */
+    .theme-toggle {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      color: var(--text-primary);
+    }
+
+    .theme-toggle:hover {
+      transform: rotate(15deg);
+      background: var(--accent);
+      color: white;
     }
 
     /* User dropdown */
@@ -61,16 +126,15 @@
       right: 0;
       top: 100%;
       padding-top: 0.5rem;
-      /* Use padding instead of margin */
       min-width: 180px;
       z-index: 100;
     }
 
     .user-dropdown-menu>* {
-      background: #1e293b;
-      border: 1px solid rgba(55, 65, 81, 0.9);
+      background: var(--dropdown-bg);
+      border: 1px solid var(--border-color);
       border-radius: 12px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
       overflow: hidden;
     }
 
@@ -84,17 +148,17 @@
       align-items: center;
       gap: 0.5rem;
       padding: 0.7rem 1rem;
-      color: #e5e7eb;
+      color: var(--text-primary);
       text-decoration: none;
       transition: background 0.15s ease;
     }
 
     .user-dropdown-item:hover {
-      background: rgba(59, 130, 246, 0.2);
+      background: rgba(99, 102, 234, 0.2);
     }
 
     .user-dropdown-divider {
-      border-top: 1px solid rgba(55, 65, 81, 0.9);
+      border-top: 1px solid var(--border-color);
     }
   </style>
 </head>
@@ -119,6 +183,11 @@
           <a href="{% url 'tournaments:tournament_list' %}"
             class="px-4 py-2 rounded-full text-sm font-medium text-gray-300 hover:text-white hover:bg-slate-800 transition">
             <i class="fas fa-gamepad mr-2"></i>Tournaments
+          </a>
+
+          <a href="{% url 'tournaments:leaderboard' %}"
+            class="px-4 py-2 rounded-full text-sm font-medium text-gray-300 hover:text-white hover:bg-slate-800 transition">
+            <i class="fas fa-crown mr-2"></i>Leaderboard
           </a>
 
           {% if user.is_authenticated %}

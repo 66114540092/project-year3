@@ -7,8 +7,11 @@ from django.utils import timezone
 from django.core.paginator import Paginator
 
 # Import Models
-from tournaments.models import Tournament, MatchVote
+from tournaments.models import Tournament, MatchVote, MatchComment, Comment
+from accounts.models import Profile
 from .models import Report, SupportTicket, AuditLog
+from django.views.decorators.http import require_POST
+from django.http import JsonResponse
 
 
 def is_admin(user):
@@ -33,7 +36,7 @@ def admin_dashboard(request):
     total_users = User.objects.count()
     new_users_today = User.objects.filter(date_joined__gte=timezone.now().date()).count()
     total_tournaments = Tournament.objects.count()
-    active_tournaments = Tournament.objects.filter(status='live').count()
+    active_tournaments = Tournament.objects.filter(status='open').count()
     total_votes = MatchVote.objects.count()
     
     # Recent tournaments (5 newest)
@@ -45,7 +48,7 @@ def admin_dashboard(request):
         'total_tournaments': total_tournaments,
         'active_tournaments': active_tournaments,
         'total_votes': total_votes,
-        'pending_reports': Report.objects.filter(status='open').count(),
+        'pending_reports': Report.objects.filter(status='pending').count(),
         'recent_tournaments': recent_tournaments,
         'section': 'dashboard',
     }
@@ -79,10 +82,18 @@ def admin_tournament_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
+    # Counts for header stats
+    live_count = Tournament.objects.filter(status='open').count()
+    waiting_count = Tournament.objects.filter(status='waiting').count()
+    finished_count = Tournament.objects.filter(status='finished').count()
+
     context = {
         'page_obj': page_obj,
         'query': query,
         'status_filter': status_filter,
+        'live_count': live_count,
+        'waiting_count': waiting_count,
+        'finished_count': finished_count,
         'section': 'tournaments',
     }
     return render(request, 'custom_admin/tournament_list.html', context)
@@ -94,8 +105,6 @@ def admin_user_list(request):
     User Management View
     Features: List, Search, Filter (Role), Ban/Unban Status
     """
-    from django.core.paginator import Paginator
-    
     query = request.GET.get('q', '')
     role_filter = request.GET.get('role', '')
     
@@ -121,10 +130,16 @@ def admin_user_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
+    # Counts for header stats
+    active_count = User.objects.filter(is_active=True).count()
+    banned_count = User.objects.filter(is_active=False).count()
+
     context = {
         'page_obj': page_obj,
         'query': query,
         'role_filter': role_filter,
+        'active_count': active_count,
+        'banned_count': banned_count,
         'section': 'users',
     }
     return render(request, 'custom_admin/user_list.html', context)
@@ -174,36 +189,6 @@ def admin_force_finish_tournament(request, pk):
         messages.success(request, f'Tournament "{tournament.name}" has been marked as finished.')
     
     return redirect('custom_admin:tournament_list')
-
-
-@admin_required
-def admin_user_list(request):
-    """
-    User Management View
-    Features: Search, Pagination
-    """
-    query = request.GET.get('q', '')
-    
-    users = User.objects.order_by('-date_joined')
-    
-    # Search
-    if query:
-        users = users.filter(
-            Q(username__icontains=query) | 
-            Q(email__icontains=query)
-        )
-        
-    # Pagination
-    paginator = Paginator(users, 15)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    context = {
-        'page_obj': page_obj,
-        'query': query,
-        'section': 'users',
-    }
-    return render(request, 'custom_admin/user_list.html', context)
 
 
 @admin_required
@@ -306,7 +291,15 @@ def admin_reports(request):
     """View and manage reports"""
     status_filter = request.GET.get('status', '')
     
-    reports = Report.objects.select_related('reporter', 'target_user', 'target_tournament').order_by('-created_at')
+    reports = Report.objects.select_related(
+        'reporter', 'target_user', 'target_tournament', 
+        'target_match_comment', 'target_tournament_comment'
+    ).order_by('-created_at')
+    
+    # Get counts for stats
+    pending_count = Report.objects.filter(status='pending').count()
+    resolved_count = Report.objects.filter(status='resolved').count()
+    dismissed_count = Report.objects.filter(status='dismissed').count()
     
     if status_filter:
         reports = reports.filter(status=status_filter)
@@ -319,6 +312,9 @@ def admin_reports(request):
         'page_obj': page_obj,
         'status_filter': status_filter,
         'section': 'reports',
+        'pending_count': pending_count,
+        'resolved_count': resolved_count,
+        'dismissed_count': dismissed_count,
     }
     return render(request, 'custom_admin/reports.html', context)
 
@@ -364,3 +360,115 @@ def admin_dismiss_report(request, pk):
     
     return redirect('custom_admin:reports')
 
+
+@admin_required
+def admin_user_detail(request, pk):
+    """
+    User Detail View for Admin
+    Shows profile info, stats, and created tournaments (read-only)
+    """
+    target_user = get_object_or_404(User, pk=pk)
+    target_profile, created = Profile.objects.get_or_create(user=target_user)
+    
+    # Recent tournaments by this user
+    user_tournaments = Tournament.objects.filter(created_by=target_user).order_by('-created_at')[:10]
+    
+    context = {
+        'target_user': target_user,
+        'target_profile': target_profile,
+        'user_tournaments': user_tournaments,
+        'section': 'users',
+    }
+    return render(request, 'custom_admin/user_detail.html', context)
+
+
+@admin_required
+@require_POST
+def admin_delete_comment(request, pk):
+    """Delete a comment (admin moderation)"""
+    # We use MatchComment from tournaments
+    comment = get_object_or_404(MatchComment, pk=pk)
+    
+    # Audit Log
+    AuditLog.objects.create(
+        user=request.user,
+        action='DELETE_COMMENT',
+        target_model='MatchComment',
+        details=f'Deleted comment #{pk} by {comment.user.username}: "{comment.text}"',
+        ip_address=request.META.get('REMOTE_ADDR')
+    )
+    
+    comment.delete()
+    
+    return JsonResponse({'success': True})
+
+
+@admin_required
+@require_POST
+def admin_delete_tournament_comment(request, pk):
+    """Delete a tournament discussion comment (admin moderation)"""
+    comment = get_object_or_404(Comment, pk=pk)
+    
+    # Audit Log
+    AuditLog.objects.create(
+        user=request.user,
+        action='DELETE_COMMENT',
+        target_model='Comment',
+        details=f'Deleted tournament comment #{pk} by {comment.user.username}: "{comment.text}"',
+        ip_address=request.META.get('REMOTE_ADDR')
+    )
+    
+    comment.delete()
+    
+    return JsonResponse({'success': True})
+
+
+@admin_required
+def admin_support_tickets(request):
+    """View and manage support tickets"""
+    status_filter = request.GET.get('status', 'open')
+    
+    tickets = SupportTicket.objects.select_related('user').order_by('-created_at')
+    
+    if status_filter != 'all':
+        tickets = tickets.filter(status=status_filter)
+    
+    paginator = Paginator(tickets, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'status_filter': status_filter,
+        'section': 'support',
+    }
+    return render(request, 'custom_admin/support_tickets.html', context)
+
+
+@admin_required
+def admin_reply_ticket(request, pk):
+    """Reply/Update a support ticket"""
+    ticket = get_object_or_404(SupportTicket, pk=pk)
+    
+    if request.method == 'POST':
+        status = request.POST.get('status')
+        reply = request.POST.get('reply', '')
+        
+        if status:
+            ticket.status = status
+            
+        ticket.save()
+        
+        # Log action
+        AuditLog.objects.create(
+            user=request.user,
+            action='UPDATE_TICKET',
+            target_model='SupportTicket',
+            details=f'Updated ticket #{pk} status to {status}. Reply: {reply[:50] if reply else "N/A"}...',
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+        
+        messages.success(request, f'Ticket #{pk} updated.')
+        return redirect('custom_admin:support_tickets')
+    
+    return redirect('custom_admin:support_tickets')

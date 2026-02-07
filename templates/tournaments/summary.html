@@ -8,7 +8,7 @@
     padding: 2rem 1rem;
   }
 
-  /* Champion Section */
+  /* Champion Section - Enhanced */
   .champion-section {
     background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 193, 7, 0.15) 100%);
     border: 2px solid rgba(255, 215, 0, 0.4);
@@ -20,31 +20,18 @@
     overflow: hidden;
   }
 
-  .champion-section::before {
-    content: '🎊';
-    position: absolute;
-    top: -20px;
-    left: 10%;
-    font-size: 4rem;
-    opacity: 0.3;
-    animation: float 3s ease-in-out infinite;
+  .champion-badge {
+    display: inline-block;
+    font-size: 5rem;
+    margin-bottom: 1rem;
+    animation: bounce 1s ease-in-out infinite, glow 2s ease-in-out infinite;
   }
 
-  .champion-section::after {
-    content: '🎉';
-    position: absolute;
-    bottom: -20px;
-    right: 10%;
-    font-size: 4rem;
-    opacity: 0.3;
-    animation: float 3s ease-in-out infinite 1.5s;
-  }
-
-  @keyframes float {
+  @keyframes bounce {
 
     0%,
     100% {
-      transform: translateY(0px);
+      transform: translateY(0);
     }
 
     50% {
@@ -52,53 +39,193 @@
     }
   }
 
-  .champion-badge {
-    display: inline-block;
-    font-size: 4rem;
-    margin-bottom: 1rem;
-    animation: pulse 2s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
+  @keyframes glow {
 
     0%,
     100% {
-      transform: scale(1);
+      filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.8));
     }
 
     50% {
-      transform: scale(1.1);
+      filter: drop-shadow(0 0 40px rgba(255, 215, 0, 1));
     }
   }
 
   .champion-title {
-    font-size: 2.5rem;
+    font-size: 3rem;
     font-weight: 900;
-    color: #ffd700;
+    background: linear-gradient(135deg, #ffd700 0%, #ffaa00 50%, #ffd700 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     margin-bottom: 2rem;
-    text-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+    animation: shine 3s linear infinite;
+  }
+
+  @keyframes shine {
+    0% {
+      background-position: -200% center;
+    }
+
+    100% {
+      background-position: 200% center;
+    }
   }
 
   .champion-card {
     max-width: 400px;
     margin: 0 auto;
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 215, 0, 0.3);
-    border-radius: 16px;
+    border: 3px solid rgba(255, 215, 0, 0.5);
+    border-radius: 20px;
     overflow: hidden;
+    animation: zoomIn 0.8s ease-out;
+    box-shadow: 0 0 60px rgba(255, 215, 0, 0.3);
+  }
+
+  @keyframes zoomIn {
+    0% {
+      transform: scale(0);
+      opacity: 0;
+    }
+
+    50% {
+      transform: scale(1.1);
+    }
+
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
 
   .champion-image {
     width: 100%;
     height: 350px;
     object-fit: cover;
+    border-bottom: 3px solid rgba(255, 215, 0, 0.3);
   }
 
   .champion-name {
     padding: 1.5rem;
-    font-size: 1.5rem;
+    font-size: 1.8rem;
     font-weight: 700;
+    color: #ffd700;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+  }
+
+  /* Stats Cards */
+  .stats-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: center;
+    animation: fadeInUp 0.5s ease-out;
+  }
+
+  .stat-card:nth-child(2) {
+    animation-delay: 0.1s;
+  }
+
+  .stat-card:nth-child(3) {
+    animation-delay: 0.2s;
+  }
+
+  .stat-card:nth-child(4) {
+    animation-delay: 0.3s;
+  }
+
+  @keyframes fadeInUp {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .stat-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #667eea;
+  }
+
+  .stat-label {
+    color: #aaa;
+    font-size: 0.9rem;
+  }
+
+  /* Share Section */
+  .share-section {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+
+  .share-title {
+    font-size: 1.2rem;
     color: #fff;
+    margin-bottom: 1rem;
+  }
+
+  .share-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .share-btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: none;
+  }
+
+  .share-btn.facebook {
+    background: #1877f2;
+    color: white;
+  }
+
+  .share-btn.twitter {
+    background: #1da1f2;
+    color: white;
+  }
+
+  .share-btn.copy {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .share-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
   }
 
   /* Tournament Info */
@@ -216,13 +343,150 @@
     color: white;
   }
 
+  /* Audio control */
+  .audio-control {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+  }
+
+  .mute-btn {
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 1.2rem;
+  }
+
+  /* Bracket View Styles */
+  .bracket-section {
+    max-width: 100%;
+    margin: 2rem auto;
+    overflow-x: auto;
+    padding-bottom: 2rem;
+  }
+
+  .bracket-section-title {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  .bracket-wrapper {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 0 1rem;
+    min-width: min-content;
+  }
+
+  .round-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 180px;
+    justify-content: center;
+  }
+
+  .round-label {
+    text-align: center;
+    color: #888;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 1rem;
+    position: sticky;
+    top: 0;
+    background: #0f172a;
+    padding: 0.5rem 0;
+    z-index: 10;
+  }
+
+  .match-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 0.5rem;
+    position: relative;
+    transition: all 0.3s ease;
+  }
+
+  .match-card:hover {
+    border-color: rgba(102, 126, 234, 0.5);
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.2);
+  }
+
+  .match-card.finished {
+    opacity: 0.9;
+  }
+
+  .competitor-row {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.5rem;
+    border-radius: 8px;
+    margin-bottom: 0.25rem;
+  }
+
+  .competitor-row.winner {
+    background: rgba(16, 185, 129, 0.1);
+    border-left: 3px solid #10b981;
+  }
+
+  .competitor-row.loser {
+    opacity: 0.5;
+  }
+
+  .competitor-thumb {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .competitor-name {
+    flex: 1;
+    font-size: 0.95rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .competitor-score {
+    font-weight: 700;
+    color: #667eea;
+    font-size: 1rem;
+  }
+
+  .tbd {
+    color: #64748b;
+    font-style: italic;
+  }
+
+  /* Responsive bracket */
+  @media (max-width: 768px) {
+    .bracket-wrapper {
+      justify-content: flex-start;
+    }
+  }
+
   @media (max-width: 768px) {
     .champion-section {
       padding: 2rem 1.5rem;
     }
 
     .champion-title {
-      font-size: 1.8rem;
+      font-size: 2rem;
     }
 
     .action-buttons {
@@ -231,29 +495,76 @@
   }
 </style>
 
+<!-- Confetti Canvas -->
+<canvas id="confetti-canvas"
+  style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999;"></canvas>
+
 <div class="summary-container">
   <!-- Tournament Info -->
   <div class="tournament-info">
-    <h1 class="info-title">📊 {{ tournament.name }}</h1>
+    <h1 class="info-title"><i class="fas fa-trophy"></i> {{ tournament.name }}</h1>
     <div class="info-meta">
-      Created {{ tournament.created_at|date:"M d, Y" }} ·
-      Status: {{ tournament.status|upper }}
+      <i class="fas fa-calendar"></i> Created {{ tournament.created_at|date:"M d, Y" }} ·
+      <i class="fas fa-flag"></i> Status: <span style="color: #4caf50;">{{ tournament.status|upper }}</span>
     </div>
   </div>
 
   <!-- Champion Section -->
   {% if champion %}
-  <div class="champion-section">
+  <div class="champion-section" id="champion-section">
     <div class="champion-badge">👑</div>
-    <h2 class="champion-title">Tournament Champion!</h2>
+    <h2 class="champion-title">🎊 TOURNAMENT CHAMPION! 🎊</h2>
 
     <div class="champion-card">
       <img src="{{ champion.image.url }}" alt="{{ champion.name }}" class="champion-image">
       <div class="champion-name">
-        {{ champion.name|default:"Champion" }}
+        <i class="fas fa-star"></i> {{ champion.name|default:"Champion" }} <i class="fas fa-star"></i>
       </div>
     </div>
   </div>
+
+  <!-- Stats Section -->
+  <div class="stats-section">
+    <div class="stat-card">
+      <div class="stat-icon">🗳️</div>
+      <div class="stat-value" id="total-votes">{{ total_votes }}</div>
+      <div class="stat-label">Total Votes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🏆</div>
+      <div class="stat-value">{{ tournament.total_rounds }}</div>
+      <div class="stat-label">Rounds Played</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">👥</div>
+      <div class="stat-value">{{ tournament.bracket_size }}</div>
+      <div class="stat-label">Competitors</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">⏱️</div>
+      <div class="stat-value">{{ tournament.voting_duration_seconds }}s</div>
+      <div class="stat-label">Per Match</div>
+    </div>
+  </div>
+
+  <!-- Share Section -->
+  <div class="share-section">
+    <div class="share-title"><i class="fas fa-share-alt"></i> Share This Victory!</div>
+    <div class="share-buttons">
+      <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri }}" target="_blank"
+        class="share-btn facebook">
+        <i class="fab fa-facebook"></i> Facebook
+      </a>
+      <a href="https://twitter.com/intent/tweet?text=🏆 {{ champion.name }} won the {{ tournament.name }} tournament on BattleHub!&url={{ request.build_absolute_uri }}"
+        target="_blank" class="share-btn twitter">
+        <i class="fab fa-twitter"></i> Twitter
+      </a>
+      <button onclick="copyLink()" class="share-btn copy">
+        <i class="fas fa-link"></i> Copy Link
+      </button>
+    </div>
+  </div>
+
   {% else %}
   <div class="empty-champion">
     <p style="font-size: 3rem; margin-bottom: 1rem;">🏆</p>
@@ -262,69 +573,135 @@
   </div>
   {% endif %}
 
-  <!-- Rounds - JS Rendered -->
-  <div class="rounds-section">
-    <div id="matches-container"></div>
+  <!-- Bracket View -->
+  <div class="bracket-section">
+    <h2 class="bracket-section-title"><i class="fas fa-sitemap"></i> Tournament Bracket</h2>
+    <div class="bracket-wrapper">
+      {% for round_num, round_matches in rounds.items %}
+      <div class="round-column">
+        <div class="round-label">
+          {% if round_num == tournament.total_rounds %}
+          🏆 Final
+          {% elif round_num == tournament.total_rounds|add:"-1" %}
+          Semi-Finals
+          {% else %}
+          Round {{ round_num }}
+          {% endif %}
+        </div>
+
+        {% for match in round_matches %}
+        <div class="match-card {% if match.is_finished %}finished{% endif %}">
+          <!-- Competitor 1 -->
+          <div
+            class="competitor-row {% if match.winner == match.competitor1 %}winner{% elif match.is_finished %}loser{% endif %}">
+            {% if match.competitor1 %}
+            {% if match.competitor1.image %}
+            <img src="{{ match.competitor1.image.url }}" alt="{{ match.competitor1.name }}" class="competitor-thumb">
+            {% endif %}
+            <span class="competitor-name">{{ match.competitor1.name|default:"Unnamed" }}</span>
+            <span class="competitor-score">{{ match.votes_for_competitor1 }}</span>
+            {% else %}
+            <span class="competitor-name tbd">TBD</span>
+            {% endif %}
+          </div>
+
+          <!-- Competitor 2 -->
+          <div
+            class="competitor-row {% if match.winner == match.competitor2 %}winner{% elif match.is_finished %}loser{% endif %}">
+            {% if match.competitor2 %}
+            {% if match.competitor2.image %}
+            <img src="{{ match.competitor2.image.url }}" alt="{{ match.competitor2.name }}" class="competitor-thumb">
+            {% endif %}
+            <span class="competitor-name">{{ match.competitor2.name|default:"Unnamed" }}</span>
+            <span class="competitor-score">{{ match.votes_for_competitor2 }}</span>
+            {% else %}
+            <span class="competitor-name tbd">TBD</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
   </div>
 
   <!-- Action Buttons -->
   <div class="action-buttons">
+    <a href="{% url 'tournaments:tournament_list' %}" class="action-btn btn-primary">
+      <i class="fas fa-home"></i> Back to Tournaments
+    </a>
     <a href="{% url 'tournaments:tournament_detail' tournament.pk %}" class="action-btn btn-primary">
-      ← Back to Tournament
+      <i class="fas fa-info-circle"></i> Tournament Details
     </a>
   </div>
 </div>
 
+
+
+<!-- Confetti Library -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+{{ matches_data|json_script:"matches-data" }}
+
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    const matchesData = {{ matches_json| safe
-  }};
-  const container = document.getElementById('matches-container');
+    const matchesData = JSON.parse(document.getElementById('matches-data').textContent);
 
-  // Group matches by round
-  const rounds = {};
-  matchesData.forEach(m => {
-    if (!rounds[m.round_number]) rounds[m.round_number] = [];
-    rounds[m.round_number].push(m);
+    // Calculate total votes - REMOVED (Handled server-side)
+    // let totalVotes = 0;
+    // matchesData.forEach(m => {
+    //   totalVotes += m.votes1 + m.votes2;
+    // });
+    // document.getElementById('total-votes').textContent = totalVotes;
+
+    // Fire confetti if there's a champion
+    {% if champion %}
+    fireConfetti();
+    {% endif %}
   });
 
-  // Render HTML
-  let html = '';
-  const totalRounds = Math.max(...Object.keys(rounds).map(Number));
+  // Confetti effect
+  function fireConfetti() {
+    const duration = 5 * 1000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
 
-  Object.keys(rounds).sort((a, b) => a - b).forEach(roundNum => {
-    const rNum = parseInt(roundNum);
-    let roundTitle = `🎯 Round ${rNum}`;
-    if (rNum === totalRounds) roundTitle = '🏆 Final Round';
-    else if (rNum === totalRounds - 1) roundTitle = '🥈 Semi-Finals';
+    function randomInRange(min, max) {
+      return Math.random() * (max - min) + min;
+    }
 
-    html += `
-        <div class="round-card">
-          <h3 class="round-title">${roundTitle}</h3>
-      `;
+    const interval = setInterval(function () {
+      const timeLeft = animationEnd - Date.now();
 
-    rounds[roundNum].forEach(m => {
-      const winnerBadge = m.winner_name
-        ? `<span class="match-winner">✓ Winner: ${m.winner_name}</span>`
-        : `<span style="color: #888; font-size: 0.85rem;">Not finished</span>`;
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
 
-      html += `
-          <div class="match-item">
-            <div class="match-vs">
-              ${m.competitor1_name} <span style="color: #667eea;">vs</span> ${m.competitor2_name}
-            </div>
-            <div class="match-votes">
-              Votes: <strong>${m.votes1}</strong> – <strong>${m.votes2}</strong>
-            </div>
-            ${winnerBadge}
-          </div>
-        `;
+      const particleCount = 50 * (timeLeft / duration);
+
+      // Gold confetti from left
+      confetti({
+        ...defaults,
+        particleCount,
+        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+        colors: ['#ffd700', '#ffaa00', '#ff8c00']
+      });
+
+      // Purple confetti from right
+      confetti({
+        ...defaults,
+        particleCount,
+        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+        colors: ['#667eea', '#764ba2', '#9b59b6']
+      });
+    }, 250);
+  }
+
+  // Copy link function
+  function copyLink() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      alert('Link copied to clipboard!');
     });
-
-    html += `</div>`; // Close round-card
-  });
-
-  container.innerHTML = html;
-  });
+  }
 </script>
 {% endblock %}

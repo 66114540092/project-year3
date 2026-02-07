@@ -9,9 +9,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-r0bq6a$lr*gd2+(25clnauy)*r+@#c3(k93dgvse!(w9dc%3#+')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = True  # Temporarily forced True to see error
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost').split(',')
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 INSTALLED_APPS = [
@@ -50,6 +50,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "custom_admin.context_processors.admin_context",
             ],
         },
     },
@@ -110,8 +111,14 @@ LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "tournaments:tournament_list"
 LOGOUT_REDIRECT_URL = "tournaments:tournament_list"
 
-# CSRF Trusted Origins (for production)
-CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='').split(',') if config('CSRF_TRUSTED_ORIGINS', default='') else []
+# CSRF Trusted Origins (for production and ngrok)
+CSRF_TRUSTED_ORIGINS = [
+    'https://c271a6310f28.ngrok-free.app',
+    'https://*.ngrok-free.app',
+    'https://*.ngrok.io',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
 
 # Security settings for production
 if not DEBUG:
