@@ -30,7 +30,15 @@ Abstract	5
 3.3 การออกแบบหน้าจอ
 3.4 Use Case Diagram
 3.5 Class Diagram
+  3.5.1 Backend Class Diagram
+    3.5.1.1 Accounts App
+    3.5.1.2 Tournaments App
+    3.5.1.3 Custom Admin App
+  3.5.2 Frontend Class Diagram
 3.6 Sequence Diagram
+  3.6.1 Sequence Diagram ส่วนผู้ใช้งานทั่วไป (Guest Flow)
+  3.6.2 Sequence Diagram ส่วนสมาชิก (Member Flow)
+  3.6.3 Sequence Diagram ส่วนผู้ดูแลระบบ (Admin Flow)
 3.7 Data Model
 
 บทที่ 4 การพัฒนาระบบ

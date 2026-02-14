@@ -98,11 +98,15 @@
       {% if competitors %}
       <div class="grid grid-cols-2 gap-3">
         {% for c in competitors %}
-        <div class="bg-slate-900/50 rounded-xl overflow-hidden border border-slate-700/50">
+        <div class="bg-slate-900/50 rounded-xl overflow-hidden border border-slate-700/50 relative group">
           <img src="{{ c.image.url }}" alt="{{ c.name }}" class="w-full h-32 object-cover">
           <div class="p-3">
             <p class="text-sm font-medium text-white truncate">{{ c.name|default:"(unnamed)" }}</p>
           </div>
+          <form method="post" action="{% url 'tournaments:delete_competitor' tournament.pk c.pk %}" class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition" onsubmit="return confirm('Remove this competitor?')">
+            {% csrf_token %}
+            <button type="submit" class="w-7 h-7 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center text-xs shadow-lg"><i class="fas fa-times"></i></button>
+          </form>
         </div>
         {% endfor %}
       </div>
@@ -115,11 +119,11 @@
       {% endif %}
 
       {% if can_publish %}
-      <form method="post" action="{% url 'tournaments:publish' tournament.pk %}" class="mt-6">
+      <form method="post" action="{% url 'tournaments:open_lobby' tournament.pk %}" class="mt-6">
         {% csrf_token %}
         <button type="submit"
           class="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold rounded-xl transition">
-          <i class="fas fa-rocket mr-2"></i>Publish Tournament
+          <i class="fas fa-door-open mr-2"></i>Open Lobby
         </button>
       </form>
       {% endif %}

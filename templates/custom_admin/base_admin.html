@@ -136,11 +136,6 @@
                 <span>Reports / Moderation</span>
             </a>
 
-            <a href="{% url 'custom_admin:support_tickets' %}"
-                class="sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-lg {% if section == 'support' %}active text-white{% else %}text-slate-400{% endif %}">
-                <i class="fa-solid fa-headset w-5"></i>
-                <span>Support Tickets</span>
-            </a>
 
             <a href="{% url 'custom_admin:audit_logs' %}"
                 class="sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-lg {% if section == 'audit_logs' %}active text-white{% else %}text-slate-400{% endif %}">

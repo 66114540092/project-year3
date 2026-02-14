@@ -115,6 +115,7 @@ LOGOUT_REDIRECT_URL = "tournaments:tournament_list"
 CSRF_TRUSTED_ORIGINS = [
     'https://c271a6310f28.ngrok-free.app',
     'https://*.ngrok-free.app',
+    'https://*.ngrok-free.dev',
     'https://*.ngrok.io',
     'http://localhost:8000',
     'http://127.0.0.1:8000',

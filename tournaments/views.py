@@ -282,6 +282,20 @@ def add_competitors(request, pk):
 
 
 @login_required
+def delete_competitor(request, pk, comp_id):
+    """ลบผู้เข้าแข่งขันออกจาก tournament (ต้องเป็น draft เท่านั้น)"""
+    tournament = get_object_or_404(Tournament, pk=pk, created_by=request.user)
+    if tournament.status != "draft":
+        messages.error(request, "Cannot delete competitors after tournament is published.")
+        return redirect("tournaments:tournament_detail", pk=pk)
+    competitor = get_object_or_404(Competitor, pk=comp_id, tournament=tournament)
+    name = competitor.name or f"Competitor {comp_id}"
+    competitor.delete()
+    messages.success(request, f'Removed "{name}" from the tournament.')
+    return redirect("tournaments:add_competitors", pk=pk)
+
+
+@login_required
 def publish_tournament(request, pk):
     """generate bracket + เปิด tournament"""
     tournament = get_object_or_404(Tournament, pk=pk, created_by=request.user)

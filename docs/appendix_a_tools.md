@@ -1,32 +1,29 @@
-ภาคผนวก ก 
-การติดตั้งเครื่องมือที่ใช้พัฒนาโปรแกรม
+# ภาคผนวก ก
+# การติดตั้งเครื่องมือที่ใช้พัฒนาโปรแกรม
 
-ก.1 การติดตั้ง Python
-1) ดาวน์โหลด Python 3.11 จาก https://www.python.org/downloads/
-2) รันไฟล์ติดตั้ง เลือก "Add Python to PATH"
-3) ตรวจสอบการติดตั้งด้วยคำสั่ง python --version
+การติดตั้งเครื่องมือที่ใช้ในการพัฒนาเว็บแอพพลิเคชันระบบจัดการการแข่งขันและโหวตแบบเรียลไทม์ (BattleHub) มีโปรแกรมที่จำเป็นในการพัฒนาระบบดังต่อไปนี้
 
-ก.2 การติดตั้ง Docker Desktop
-1) ดาวน์โหลด Docker Desktop จาก https://www.docker.com/products/docker-desktop/
-2) รันไฟล์ติดตั้งและ Restart เครื่อง
-3) เปิด Docker Desktop และรอให้ Engine พร้อมใช้งาน
-4) ตรวจสอบด้วยคำสั่ง docker --version และ docker-compose --version
+## ก.1 การติดตั้ง Visual Studio Code
+1.  ดาวน์โหลดโปรแกรม Visual Studio Code จากเว็บไซต์ https://code.visualstudio.com/
+2.  ทำการติดตั้งโปรแกรมตามขั้นตอนมาตรฐาน (Default Installation)
+3.  เปิดโปรแกรม Visual Studio Code และติดตั้ง Extensions ที่จำเป็น เช่น Python, Django, Docker
 
-ก.3 การติดตั้ง VS Code
-1) ดาวน์โหลด VS Code จาก https://code.visualstudio.com/
-2) รันไฟล์ติดตั้ง
-3) ติดตั้ง Extensions ที่แนะนำ:
-    - Python
-    - Django
-    - Docker
-    - Prettier
+*(รูปที่ ก.1 หน้าต่างเว็บไซต์สำหรับดาวน์โหลด Visual Studio Code)*
 
-ก.4 การติดตั้ง Git
-1) ดาวน์โหลด Git จาก https://git-scm.com/downloads
-2) รันไฟล์ติดตั้ง เลือก Default Options
-3) ตรวจสอบด้วยคำสั่ง git --version
+*(รูปที่ ก.2 หน้าต่างโปรแกรม Visual Studio Code เมื่อติดตั้งเสร็จสมบูรณ์)*
 
-ก.5 การติดตั้ง PostgreSQL (สำหรับ Development)
-1) ดาวน์โหลด PostgreSQL 15 จาก https://www.postgresql.org/download/
-2) รันไฟล์ติดตั้ง กำหนดรหัสผ่าน superuser
-3) ตรวจสอบด้วย pgAdmin หรือ psql
+## ก.2 การติดตั้ง Python
+1.  ดาวน์โหลด Python เวอร์ชัน 3.11 ขึ้นไปจากเว็บไซต์ https://www.python.org/downloads/
+2.  รันไฟล์ติดตั้ง และต้องเลือกติ๊กถูกที่ช่อง **"Add Python to PATH"** ก่อนกด Install
+3.  ตรวจสอบการติดตั้งโดยเปิด Command Line แล้วพิมพ์คำสั่ง `python --version`
+
+*(รูปที่ ก.3 หน้าต่างตัวเลือกการติดตั้ง Python (Add Python to PATH))*
+
+*(รูปที่ ก.4 หน้าต่าง Command Line แสดงเวอร์ชันของ Python ที่ติดตั้งแล้ว)*
+
+## ก.3 การติดตั้ง Docker
+1.  ดาวน์โหลด Docker Desktop จากเว็บไซต์ https://www.docker.com/products/docker-desktop/
+2.  ทำการติดตั้งและ Restart เครื่องคอมพิวเตอร์ 1 ครั้ง
+3.  เปิดโปรแกรม Docker Desktop และรอจนกว่าสถานะจะขึ้นเป็น **"Engine Running"** (สีเขียว)
+
+*(รูปที่ ก.5 หน้าต่างโปรแกรม Docker Desktop แสดงสถานะ Engine Running)*

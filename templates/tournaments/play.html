@@ -970,13 +970,8 @@
                     // Check for match change (race condition fix)
                     if (data.match.id !== matchId) {
                         console.log("Match changed! Redirecting...");
-                        if (data.match.round > currentRound) {
-                            // New round -> Go to bracket
-                            window.location.href = "{% url 'tournaments:bracket_transition' tournament.pk %}";
-                        } else {
-                            // Same round -> Reload to play next match
-                            window.location.reload();
-                        }
+                        // Reloading allows the server to determine the correct view (Play or Bracket)
+                        window.location.reload();
                         return;
                     }
 

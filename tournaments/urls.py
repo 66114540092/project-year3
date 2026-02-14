@@ -12,6 +12,7 @@ urlpatterns = [
     path("<int:pk>/delete/", views.tournament_delete, name="tournament_delete"),
 
     path("<int:pk>/competitors/", views.add_competitors, name="add_competitors"),
+    path("<int:pk>/competitors/<int:comp_id>/delete/", views.delete_competitor, name="delete_competitor"),
     path("<int:pk>/publish/", views.publish_tournament, name="publish"),
 
     path("<int:pk>/play/", views.play, name="play"),

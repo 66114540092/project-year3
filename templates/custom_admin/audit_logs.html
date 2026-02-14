@@ -24,7 +24,7 @@
             </div>
             <div>
                 <h3 class="font-semibold text-white">Recent Activity</h3>
-                <p class="text-xs text-slate-400">Showing the latest {{ logs|length }} actions</p>
+                <p class="text-xs text-slate-400">Showing the latest {{ page_obj.paginator.count }} actions</p>
             </div>
         </div>
     </div>
@@ -42,7 +42,7 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-800">
-                {% for log in logs %}
+                {% for log in page_obj %}
                 <tr class="hover:bg-slate-800/30 transition-colors">
                     <td class="px-6 py-4">
                         <div class="text-sm text-white">{{ log.created_at|date:"M d, Y" }}</div>

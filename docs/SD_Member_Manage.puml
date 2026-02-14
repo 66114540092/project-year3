@@ -1,0 +1,115 @@
+@startuml SD_Member_Manage
+
+skinparam defaultFontName "Tahoma"
+skinparam shadowing false
+skinparam backgroundColor White
+skinparam sequence {
+    ArrowColor #333333
+    LifeLineBorderColor #555555
+    ParticipantBackgroundColor #E8F5E9
+    ParticipantBorderColor #2E7D32
+}
+
+title SD-2.1: Member Flow (Part 1) — การจัดการทัวร์นาเมนต์ (Create, Edit, Publish)
+
+actor "เจ้าของ\n(Host)" as H
+
+box "Frontend" #E3F2FD
+    participant "CreateTournament\nPage" as CTP <<Template>>
+    participant "AddCompetitors\nPage" as ACP <<Template>>
+    participant "TournamentDetail\nPage" as TDP <<Template>>
+end box
+
+box "Backend" #FFF3E0
+    participant "TournamentViews" as TV <<Views>>
+    participant "TournamentForm" as TF <<Form>>
+    participant "CompetitorForm" as CF <<Form>>
+end box
+
+box "Models" #FFF8E1
+    participant "Tournament" as TM <<Model>>
+    participant "Competitor" as CM <<Model>>
+    participant "Match" as MM <<Model>>
+end box
+
+database "PostgreSQL" as DB
+
+== UC-09: สร้างทัวร์นาเมนต์ ==
+
+H -> CTP : เปิด /tournaments/create/
+CTP -> TV : GET request
+TV --> CTP : Render TournamentForm
+
+H -> CTP : กรอกข้อมูล + อัปโหลดรูปปก
+CTP -> TV : POST (multipart)
+
+activate TV
+    TV -> TF : TournamentForm(POST, FILES)
+    TF -> TF : is_valid()
+    TV -> TM : tournament = form.save(\ncommit=False)
+    TV -> TM : created_by = request.user\nstatus = "draft"
+    TM -> DB : INSERT INTO\ntournaments_tournament
+    DB --> TM : Created (pk)
+    TV --> H : Redirect → add_competitors
+deactivate TV
+
+== UC-10: แก้ไขทัวร์นาเมนต์ ==
+
+H -> CTP : แก้ไขข้อมูล (Edit)
+CTP -> TV : POST /tournaments/{pk}/edit/
+activate TV
+    TV -> TM : get_object_or_404(pk)
+    TV -> TF : TournamentForm(POST, instance=tm)
+    TF -> TM : form.save()
+    TM -> DB : UPDATE tournaments_tournament
+    TV --> TDP : Redirect -> Detail Page
+deactivate TV
+
+== UC-11: ลบทัวร์นาเมนต์ ==
+
+H -> TDP : กดปุ่ม "Delete"
+TDP -> TV : POST /tournaments/{pk}/delete/
+activate TV
+    TV -> TM : tournament.delete()
+    TM -> DB : DELETE FROM tournaments_tournament
+    TV --> H : Redirect → tournament list
+deactivate TV
+
+== UC-12: อัปโหลดผู้เข้าแข่งขัน ==
+
+H -> ACP : หน้าอัปโหลดผู้เข้าแข่งขัน
+loop ทำซ้ำจนครบ bracket_size
+    H -> ACP : อัปโหลดรูป + ชื่อ
+    ACP -> TV : POST (multipart)
+    activate TV
+        TV -> CF : CompetitorForm(POST, FILES)
+        CF -> CF : is_valid()
+        TV -> CM : Competitor.objects.create(\ntournament, name, image)
+        CM -> DB : INSERT + save image
+    deactivate TV
+    TV --> ACP : Render updated list\n+ Progress Bar
+end
+
+== UC-13: ลบผู้เข้าแข่งขัน ==
+
+H -> ACP : กดลบผู้เข้าแข่งขัน
+ACP -> TV : POST /competitor/{id}/delete/
+activate TV
+    TV -> CM : competitor.delete()
+    CM -> DB : DELETE FROM tournaments_competitor
+    TV --> ACP : Redirect back
+deactivate TV
+
+== UC-14: Publish Tournament ==
+
+H -> ACP : กดปุ่ม "Open Waiting Lobby"
+ACP -> TV : POST /tournaments/{pk}/open_lobby/
+activate TV
+    TV -> TM : check_ready_to_publish() ✓
+    TV -> TM : generate_pin()
+    TM -> DB : UPDATE status="waiting", pin="XXXXXX"
+    TV --> H : Redirect → Lobby Page
+deactivate TV
+ACP --> H : แสดงหน้า Lobby (PIN code)
+
+@enduml

@@ -71,32 +71,3 @@ class AuditLog(models.Model):
     def __str__(self):
         return f"{self.user} {self.action} {self.target_model}"
 
-
-class SupportTicket(models.Model):
-    """Support Ticket system for User inquiries"""
-    STATUS_CHOICES = [
-        ('open', 'Open'),
-        ('pending', 'Pending'),
-        ('resolved', 'Resolved'),
-        ('closed', 'Closed'),
-    ]
-    PRIORITY_CHOICES = [
-        ('low', 'Low'),
-        ('medium', 'Medium'),
-        ('high', 'High'),
-    ]
-
-    user = models.ForeignKey(User, related_name='support_tickets', on_delete=models.CASCADE)
-    subject = models.CharField(max_length=200)
-    message = models.TextField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
-    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='medium')
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ['-created_at']
-
-    def __str__(self):
-        return f"Ticket #{self.pk}: {self.subject}"

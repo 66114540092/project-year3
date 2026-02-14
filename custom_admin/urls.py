@@ -30,9 +30,5 @@ urlpatterns = [
     # Moderation
     path('comments/<int:pk>/delete/', views.admin_delete_comment, name='delete_comment'),
     path('tournament-comments/<int:pk>/delete/', views.admin_delete_tournament_comment, name='delete_tournament_comment'),
-    
-    # Support
-    path('support/', views.admin_support_tickets, name='support_tickets'),
-    path('support/<int:pk>/reply/', views.admin_reply_ticket, name='reply_ticket'),
 ]
 

@@ -9,7 +9,7 @@ from django.core.paginator import Paginator
 # Import Models
 from tournaments.models import Tournament, MatchVote, MatchComment, Comment
 from accounts.models import Profile
-from .models import Report, SupportTicket, AuditLog
+from .models import Report, AuditLog
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 
@@ -421,54 +421,3 @@ def admin_delete_tournament_comment(request, pk):
     comment.delete()
     
     return JsonResponse({'success': True})
-
-
-@admin_required
-def admin_support_tickets(request):
-    """View and manage support tickets"""
-    status_filter = request.GET.get('status', 'open')
-    
-    tickets = SupportTicket.objects.select_related('user').order_by('-created_at')
-    
-    if status_filter != 'all':
-        tickets = tickets.filter(status=status_filter)
-    
-    paginator = Paginator(tickets, 20)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    context = {
-        'page_obj': page_obj,
-        'status_filter': status_filter,
-        'section': 'support',
-    }
-    return render(request, 'custom_admin/support_tickets.html', context)
-
-
-@admin_required
-def admin_reply_ticket(request, pk):
-    """Reply/Update a support ticket"""
-    ticket = get_object_or_404(SupportTicket, pk=pk)
-    
-    if request.method == 'POST':
-        status = request.POST.get('status')
-        reply = request.POST.get('reply', '')
-        
-        if status:
-            ticket.status = status
-            
-        ticket.save()
-        
-        # Log action
-        AuditLog.objects.create(
-            user=request.user,
-            action='UPDATE_TICKET',
-            target_model='SupportTicket',
-            details=f'Updated ticket #{pk} status to {status}. Reply: {reply[:50] if reply else "N/A"}...',
-            ip_address=request.META.get('REMOTE_ADDR')
-        )
-        
-        messages.success(request, f'Ticket #{pk} updated.')
-        return redirect('custom_admin:support_tickets')
-    
-    return redirect('custom_admin:support_tickets')

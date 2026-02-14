@@ -46,13 +46,14 @@
     <form method="get" class="flex flex-wrap items-center gap-4">
         <!-- Status Filter -->
         <div class="w-48">
-            <select name="status" onchange="this.form.submit()"
+            <select name="status" id="statusFilter" onchange="this.form.submit()"
                 class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer">
                 <option value="">All Reports</option>
-                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
-                <option value="resolved" {% if status_filter == 'resolved' %}selected{% endif %}>Resolved</option>
-                <option value="dismissed" {% if status_filter == 'dismissed' %}selected{% endif %}>Dismissed</option>
+                <option value="pending">Pending</option>
+                <option value="resolved">Resolved</option>
+                <option value="dismissed">Dismissed</option>
             </select>
+            <script>document.getElementById('statusFilter').value = '{{ status_filter }}';</script>
         </div>
 
         <!-- Reset -->
@@ -102,18 +103,24 @@
                         {% elif report.target_tournament %}
                         <span class="inline-flex items-center gap-1.5">
                             <i class="fa-solid fa-trophy text-amber-400"></i>
-                            {{ report.target_tournament.name|truncatechars:20 }}
+                            {{ report.target_tournament.name }}
                         </span>
                         {% elif report.target_match_comment %}
-                        <span class="inline-flex items-center gap-1.5">
-                            <i class="fa-solid fa-comment text-emerald-400"></i>
-                            Match Comment #{{ report.target_match_comment.pk }}
-                        </span>
+                        {% with mc=report.target_match_comment %}
+                        <div>
+                            <span class="text-emerald-400"><i class="fa-solid fa-comment"></i> Match Comment by <strong>{{ mc.user.username }}</strong></span>
+                            <p class="text-xs text-slate-500 mt-1">"{{ mc.text|truncatechars:60 }}"</p>
+                            <p class="text-xs text-indigo-400/70 mt-0.5"><i class="fa-solid fa-trophy mr-1"></i>{{ mc.match.tournament.name }}</p>
+                        </div>
+                        {% endwith %}
                         {% elif report.target_tournament_comment %}
-                        <span class="inline-flex items-center gap-1.5">
-                            <i class="fa-solid fa-comments text-green-400"></i>
-                            Tournament Comment #{{ report.target_tournament_comment.pk }}
-                        </span>
+                        {% with tc=report.target_tournament_comment %}
+                        <div>
+                            <span class="text-green-400"><i class="fa-solid fa-comments"></i> Comment by <strong>{{ tc.user.username }}</strong></span>
+                            <p class="text-xs text-slate-500 mt-1">"{{ tc.text|truncatechars:60 }}"</p>
+                            <p class="text-xs text-indigo-400/70 mt-0.5"><i class="fa-solid fa-trophy mr-1"></i>{{ tc.tournament.name }}</p>
+                        </div>
+                        {% endwith %}
                         {% else %}
                         <span class="text-slate-500">Unknown</span>
                         {% endif %}
