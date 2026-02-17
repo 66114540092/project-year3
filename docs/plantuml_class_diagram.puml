@@ -1,0 +1,148 @@
+@startuml
+!theme plain
+hide empty methods
+hide empty members
+skinparam classAttributeIconSize 0
+
+' Domains
+package "Django Auth" {
+    class User {
+        +id : Integer
+        +username : String
+        +email : String
+        +password : String
+        +is_staff : Boolean
+        +is_active : Boolean
+        +date_joined : DateTime
+    }
+}
+
+package "Accounts App" {
+    class Profile {
+        +id : Integer
+        +bio : String
+        +avatar : Image
+        --
+        +user : FK (OneToOne)
+    }
+}
+
+package "Tournaments App" {
+    class Tournament {
+        +id : Integer
+        +name : String
+        +description : String
+        +category : String
+        +thumbnail : Image
+        +bracket_size : Integer
+        +voting_duration_seconds : Integer
+        +pin_code : String
+        +status : String
+        +current_round : Integer
+        --
+        +created_by : FK (User)
+    }
+
+    class Competitor {
+        +id : Integer
+        +name : String
+        +image : Image
+        --
+        +tournament : FK
+    }
+
+    class Match {
+        +id : Integer
+        +round_number : Integer
+        +index_in_round : Integer
+        +is_finished : Boolean
+        +started_at : DateTime
+        --
+        +tournament : FK
+        +competitor1 : FK
+        +competitor2 : FK
+        +winner : FK
+    }
+
+    class MatchVote {
+        +id : Integer
+        +choice : String
+        +created_at : DateTime
+        --
+        +match : FK
+        +user : FK
+    }
+
+    class Participant {
+        +id : Integer
+        +nickname : String
+        +session_key : String
+        +joined_at : DateTime
+        --
+        +tournament : FK
+        +user : FK (Nullable)
+    }
+    
+    class Comment {
+       +id: Integer
+       +text: String
+       +created_at: DateTime
+       --
+       +tournament: FK
+       +user: FK
+    }
+    
+    class MatchComment {
+       +id: Integer
+       +text: String
+       +created_at: DateTime
+       --
+       +match: FK
+       +user: FK
+    }
+}
+
+package "Custom Admin App" {
+    class Report {
+        +id : Integer
+        +reason : String
+        +status : String
+        +admin_note : String
+        --
+        +reporter : FK (User)
+        +target_user : FK (Nullable)
+        +target_tournament : FK (Nullable)
+        +target_match_comment : FK (Nullable)
+        +target_tournament_comment : FK (Nullable)
+    }
+
+    class AuditLog {
+        +id : Integer
+        +action : String
+        +target_model : String
+        +details : String
+        +ip_address : String
+        +created_at : DateTime
+        --
+        +user : FK (Admin)
+    }
+}
+
+' Relationships
+User "1" -- "1" Profile : has >
+User "1" -- "*" Tournament : owns >
+Tournament "1" -- "*" Competitor : contains >
+Tournament "1" -- "*" Match : organizes >
+Match "*" -- "*" Competitor : features >
+Match "1" -- "*" MatchVote : receives >
+User "1" -- "*" MatchVote : casts >
+Tournament "1" -- "*" Participant : has >
+User "1" -- "*" Comment : writes >
+Tournament "1" -- "*" Comment : receives >
+User "1" -- "*" MatchComment : chats in >
+Match "1" -- "*" MatchComment : has >
+
+User "1" -- "*" Report : reports >
+User "1" -- "*" AuditLog : performs >
+
+@enduml

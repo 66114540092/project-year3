@@ -154,23 +154,46 @@
 
     .leader-info {
         flex: 1;
+        min-width: 0;
+        margin-right: 0.5rem;
     }
 
     .leader-name {
         font-weight: 600;
         color: #fff;
         font-size: 1rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .leader-meta {
         color: #888;
         font-size: 0.85rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .leader-score {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        line-height: 1.2;
+        margin-left: 0.5rem;
+        min-width: fit-content;
+    }
+
+    .leader-score-value {
         font-size: 1.2rem;
         font-weight: 700;
         color: #667eea;
+    }
+
+    .leader-score-label {
+        font-size: 0.75rem;
+        color: #888;
+        font-weight: 400;
     }
 
     /* Hot Tournaments */
@@ -316,7 +339,10 @@
                         <div class="leader-name">{{ user.username }}</div>
                         <div class="leader-meta">Active voter</div>
                     </div>
-                    <div class="leader-score">{{ user.vote_count }} votes</div>
+                    <div class="leader-score">
+                        <span class="leader-score-value">{{ user.vote_count }}</span>
+                        <span class="leader-score-label">votes</span>
+                    </div>
                 </div>
                 {% endif %}
                 {% empty %}
@@ -347,7 +373,10 @@
                         <div class="leader-name">{{ user.username }}</div>
                         <div class="leader-meta">Tournament creator</div>
                     </div>
-                    <div class="leader-score">{{ user.tournament_count }} tournaments</div>
+                    <div class="leader-score">
+                        <span class="leader-score-value">{{ user.tournament_count }}</span>
+                        <span class="leader-score-label">tournaments</span>
+                    </div>
                 </div>
                 {% endif %}
                 {% empty %}
@@ -441,7 +470,10 @@
                     <div class="leader-name">{{ competitor.name }}</div>
                     <div class="leader-meta">from {{ competitor.tournament.name }}</div>
                 </div>
-                <div class="leader-score" style="color: #ffd700;">{{ competitor.win_count }} wins</div>
+                <div class="leader-score">
+                    <span class="leader-score-value" style="color: #ffd700;">{{ competitor.win_count }}</span>
+                    <span class="leader-score-label">wins</span>
+                </div>
             </div>
             {% empty %}
             <div class="empty-state">

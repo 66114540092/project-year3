@@ -1,0 +1,912 @@
+@startuml UC-01_Register_Login
+
+skinparam defaultFontName "Tahoma"
+skinparam shadowing false
+skinparam backgroundColor White
+skinparam sequence {
+    ArrowColor #333333
+    LifeLineBorderColor #555555
+    ParticipantBackgroundColor #E3F2FD
+    ParticipantBorderColor #1565C0
+    ActorBackgroundColor #E3F2FD
+    ActorBorderColor #1565C0
+}
+
+title UC-01: Register & Login (สมัครและเข้าสู่ระบบ)
+
+actor "Guest" as G
+participant "SignUp/LoginPage" as UI <<Template>>
+participant "AccountsViews" as V <<View>>
+participant "CustomSignUpForm" as F <<Form>>
+participant "User" as U <<Model>>
+participant "Profile" as P <<Model>>
+database "PostgreSQL" as DB
+
+== ส่วนการสมัครสมาชิก (Register) ==
+
+G -> UI : Submit Registration Form
+activate UI
+UI -> V : POST /accounts/signup/
+activate V
+    V -> F : CustomSignUpForm(request.POST)
+    activate F
+    F -> F : is_valid()
+    activate F
+        F -> U : validate_unique()
+        activate U
+        U -> DB : Check username/email
+        activate DB
+        DB --> U : Result
+        deactivate DB
+        deactivate U
+    deactivate F
+    deactivate F
+
+    V -> F : save()
+    activate F
+    F -> U : save()
+    activate U
+        U -> DB : INSERT auth_user
+        activate DB
+        DB --> U : User Created (ID)
+        deactivate DB
+        
+        note right of U : Signal: post_save
+        U -> P : create_user_profile(sender, instance, created)
+        activate P
+            P -> DB : INSERT accounts_profile
+            activate DB
+            DB --> P : Profile Must Exist
+            deactivate DB
+        deactivate P
+    deactivate U
+    F --> V : User Object
+    deactivate F
+    
+    V -> V : login(request, user)
+    activate V
+    deactivate V
+    
+    V --> UI : Redirect to TournamentList
+deactivate V
+UI --> G : Success Message
+deactivate UI
+
+== ส่วนการเข้าสู่ระบบ (Login) ==
+
+G -> UI : Submit Login Form
+activate UI
+UI -> V : POST /accounts/login/
+activate V
+    V -> U : authenticate(username, password)
+    activate U
+        U -> DB : SELECT * FROM auth_user WHERE username=...
+        activate DB
+        DB --> U : User Record
+        deactivate DB
+        U -> U : check_password(hash)
+        activate U
+        deactivate U
+    deactivate U
+    
+    alt Login Success
+        V -> V : login(request, user)
+        activate V
+        deactivate V
+        V --> UI : Redirect to Dashboard
+    else Login Failed
+        V --> UI : Return Error "Invalid credentials"
+    end
+deactivate V
+UI --> G : Show Dashboard / Error
+deactivate UI
+
+@enduml
+
+@startuml UC-02_Search_Tournaments
+
+skinparam defaultFontName "Tahoma"
+skinparam shadowing false
+skinparam backgroundColor White
+skinparam sequence {
+    ArrowColor #333333
+    LifeLineBorderColor #555555
+    ParticipantBackgroundColor #E3F2FD
+    ParticipantBorderColor #1565C0
+}
+
+title UC-02: Search Tournaments (ค้นหาทัวร์นาเมนต์)
+
+actor "Guest" as G
+participant "TournamentListPage" as UI <<Template>>
+participant "TournamentViews" as V <<View>>
+participant "Tournament" as T <<Model>>
+database "PostgreSQL" as DB
+
+G -> UI : Enter Search Query / Select Filter
+activate UI
+UI -> V : GET /tournaments/?search=...&tag=...
+activate V
+    V -> T : objects.all().order_by('-created_at')
+    activate T
+    T -> DB : SELECT * FROM tournaments_tournament ORDER BY created_at DESC
+    activate DB
+    DB --> T : QuerySet (All)
+    deactivate DB
+    deactivate T
+    
+    opt Search Query Exists
+        V -> T : filter(Q(name__icontains) | Q(desc__icontains))
+        activate T
+        T -> DB : SELECT ... WHERE name LIKE %...%
+        activate DB
+        DB --> T : Filtered QuerySet
+        deactivate DB
+        deactivate T
+    end
+    
+    opt Tag Selected
+        V -> T : filter(category=tag)
+        activate T
+        T -> DB : SELECT ... WHERE category = ...
+        activate DB
+        DB --> T : Filtered QuerySet
+        deactivate DB
+        deactivate T
+    end
+    
+    V -> V : Paginator(tournaments, 12)
+    activate V
+    deactivate V
+    
+    V --> UI : Render "tournament_list.html" with page_obj
+deactivate V
+UI --> G : Display Search Results
+deactivate UI
+
+@enduml
+
+@startuml UC-03_View_Results
+
+skinparam defaultFontName "Tahoma"
+skinparam shadowing false
+skinparam backgroundColor White
+skinparam sequence {
+    ArrowColor #333333
+    LifeLineBorderColor #555555
+    ParticipantBackgroundColor #E3F2FD
+    ParticipantBorderColor #1565C0
+}
+
+title UC-03: View Results (ดูผลการแข่งขัน)
+
+actor "Guest" as G
+participant "TournamentDetailPage" as UI <<Template>>
+participant "TournamentViews" as V <<View>>
+participant "Tournament" as T <<Model>>
+participant "Match" as M <<Model>>
+participant "Comment" as C <<Model>>
+database "PostgreSQL" as DB
+
+G -> UI : Click Tournament Card
+activate UI
+UI -> V : GET /tournaments/{id}/
+activate V
+    V -> T : get_object_or_404(pk=id)
+    activate T
+    T -> DB : SELECT * FROM tournaments_tournament WHERE id=...
+    activate DB
+    DB --> T : Tournament Object
+    deactivate DB
+    deactivate T
+
+    V -> T : competitors.all()
+    activate T
+    T -> DB : SELECT * FROM tournaments_competitor WHERE tournament_id=...
+    activate DB
+    DB --> T : Competitor List
+    deactivate DB
+    deactivate T
+    
+    V -> T : comments.select_related('user')
+    activate T
+    T -> DB : SELECT * FROM tournaments_comment ...
+    activate DB
+    DB --> T : Comment List
+    deactivate DB
+    deactivate T
+    
+    V --> UI : Render "tournament_detail.html" with context
+deactivate V
+UI --> G : Show Details, Bracket, Comments
+deactivate UI
+
+@enduml
+
+@startuml UC-04_Manage_Profile
+
+skinparam defaultFontName "Tahoma"
+skinparam shadowing false
+skinparam backgroundColor White
+skinparam sequence {
+    ArrowColor #333333
+    LifeLineBorderColor #555555
+    ParticipantBackgroundColor #E8F5E9
+    ParticipantBorderColor #2E7D32
+    ActorBackgroundColor #E8F5E9
+    ActorBorderColor #2E7D32
+}
+
+title UC-04: Manage Profile (จัดการข้อมูลส่วนตัว)
+
+actor "Member" as M
+participant "EditProfilePage" as UI <<Template>>
+participant "AccountsViews" as V <<View>>
+participant "ProfileUpdateForm" as UF <<UserForm>>
+participant "ProfileForm" as PF <<ProfileForm>>
+participant "User" as U <<Model>>
+participant "Profile" as P <<Model>>
+database "PostgreSQL" as DB
+
+M -> UI : Submit Edit Profile (Avatar, Bio, Email)
+activate UI
+UI -> V : POST /accounts/profile/edit/
+activate V
+    
+    V -> UF : ProfileUpdateForm(request.POST, instance=user)
+    activate UF
+    deactivate UF
+    
+    V -> PF : ProfileForm(request.POST, FILES, instance=profile)
+    activate PF
+    deactivate PF
+    
+    V -> UF : is_valid()
+    activate UF
+    deactivate UF
+    
+    V -> PF : is_valid()
+    activate PF
+    deactivate PF
+    
+    alt Both Forms Valid
+        V -> UF : save()
+        activate UF
+        UF -> U : save()
+        activate U
+            U -> DB : UPDATE auth_user SET email=..., first_name=...
+            activate DB
+            DB --> U : Success
+            deactivate DB
+        deactivate U
+        deactivate UF
+        
+        V -> PF : save()
+        activate PF
+        PF -> P : save()
+        activate P
+            P -> DB : UPDATE accounts_profile SET bio=..., avatar=...
+            activate DB
+            DB --> P : Success
+            deactivate DB
+        deactivate P
+        deactivate PF
+        
+        V -> V : messages.success("Profile updated")
+        activate V
+        deactivate V
+        V --> UI : Redirect to Profile Page
+    else Form Invalid
+        V --> UI : Re-render with Errors
+    end
+deactivate V
+UI --> M : Show Updated Profile
+deactivate UI
+
+@enduml
+
+@startuml UC-05_Manage_Tournaments
+
+skinparam defaultFontName "Tahoma"
+skinparam shadowing false
+skinparam backgroundColor White
+skinparam sequence {
+    ArrowColor #333333
+    LifeLineBorderColor #555555
+    ParticipantBackgroundColor #E8F5E9
+    ParticipantBorderColor #2E7D32
+    ActorBackgroundColor #E8F5E9
+    ActorBorderColor #2E7D32
+}
+
+title UC-05: Manage Tournaments (จัดการทัวร์นาเมนต์)
+
+actor "Member" as M
+participant "Create/EditPage" as UI <<Template>>
+participant "TournamentViews" as V <<View>>
+participant "TournamentForm" as F <<Form>>
+participant "Tournament" as T <<Model>>
+database "PostgreSQL" as DB
+
+== กรณีสร้างทัวร์นาเมนต์ (Create) ==
+M -> UI : Submit New Tournament Info
+activate UI
+UI -> V : POST /tournaments/create/
+activate V
+    V -> F : TournamentForm(request.POST, FILES)
+    activate F
+    F -> F : is_valid()
+    activate F
+    deactivate F
+    deactivate F
+    
+    alt Valid
+        V -> F : save(commit=False)
+        activate F
+        F --> V : Tournament Instance (Unsaved)
+        deactivate F
+        
+        V -> T : created_by = user
+        activate T
+        deactivate T
+        V -> T : status = 'draft'
+        activate T
+        deactivate T
+        V -> T : current_round = 1
+        activate T
+        deactivate T
+        
+        V -> T : save()
+        activate T
+            T -> DB : INSERT tournaments_tournament
+            activate DB
+            DB --> T : ID Generated
+            deactivate DB
+        deactivate T
+        
+        V --> UI : Redirect to Add Competitors (ID)
+    else Invalid
+        V --> UI : Show Form Errors
+    end
+deactivate V
+UI --> M : Show Add Competitors Page
+deactivate UI
+
+== กรณีแก้ไข (Update) ==
+M -> UI : Submit Update Info
+activate UI
+UI -> V : POST /tournaments/edit/{id}/
+activate V
+    V -> T : get_object_or_404(pk=id, created_by=user)
+    activate T
+    T -> DB : SELECT ...
+    activate DB
+    DB --> T : Tournament Obj
+    deactivate DB
+    deactivate T
+    
+    V -> F : TournamentForm(POST, FILES, instance=obj)
+    activate F
+    F -> F : is_valid()
+    activate F
+    deactivate F
+    F -> T : save()
+    activate T
+        T -> DB : UPDATE tournaments_tournament
+        activate DB
+        DB --> T : Success
+        deactivate DB
+    deactivate T
+    deactivate F
+    
+    V --> UI : Redirect to Detail Page
+deactivate V
+UI --> M : Show Tournament Detail
+deactivate UI
+
+@enduml
+
+@startuml UC-06_Manage_Competitors
+
+skinparam defaultFontName "Tahoma"
+skinparam shadowing false
+skinparam backgroundColor White
+skinparam sequence {
+    ArrowColor #333333
+    LifeLineBorderColor #555555
+    ParticipantBackgroundColor #E8F5E9
+    ParticipantBorderColor #2E7D32
+    ActorBackgroundColor #E8F5E9
+    ActorBorderColor #2E7D32
+}
+
+title UC-06: Manage Competitors (จัดการผู้เข้าแข่งขัน)
+
+actor "Member" as M
+participant "AddCompetitorsPage" as UI <<Template>>
+participant "TournamentViews" as V <<View>>
+participant "Competitor" as C <<Model>>
+database "PostgreSQL" as DB
+
+M -> UI : Upload Multiple Images + Names
+activate UI
+UI -> V : POST /tournaments/{id}/competitors/
+activate V
+    V -> V : request.FILES.getlist('images')
+    activate V
+    deactivate V
+    
+    V -> V : request.POST.getlist('names')
+    activate V
+    deactivate V
+    
+    loop For each image in images
+        V -> C : Competitor.objects.create(...)
+        activate C
+            C -> DB : INSERT tournaments_competitor (name, image, tournament_id)
+            activate DB
+            DB --> C : Created ID
+            deactivate DB
+        deactivate C
+    end
+    
+    V -> V : messages.success("Added x competitors")
+    activate V
+    deactivate V
+    
+    V --> UI : Redirect to Add Competitors (Reload)
+deactivate V
+UI -> UI : Render List
+activate UI
+deactivate UI
+UI --> M : Show Updated Competitor List
+deactivate UI
+
+@enduml
+
+@startuml UC-07_Manage_Lobby
+
+skinparam defaultFontName "Tahoma"
+skinparam shadowing false
+skinparam backgroundColor White
+skinparam sequence {
+    ArrowColor #333333
+    LifeLineBorderColor #555555
+    ParticipantBackgroundColor #E8F5E9
+    ParticipantBorderColor #2E7D32
+    ActorBackgroundColor #E8F5E9
+    ActorBorderColor #2E7D32
+}
+
+title UC-07: Manage Lobby (จัดการห้องแข่ง - Host)
+
+actor "Host (Member)" as H
+participant "LobbyPage" as UI <<Template>>
+participant "TournamentViews" as V <<View>>
+participant "Tournament" as T <<Model>>
+participant "Match" as M <<Model>>
+database "PostgreSQL" as DB
+
+group Open Lobby
+    H -> UI : Click "Open Waiting Lobby"
+    activate UI
+    UI -> V : POST /tournaments/{id}/open_lobby/
+    activate V
+        V -> T : get_object_or_404(pk, user)
+        activate T
+        deactivate T
+        
+        V -> V : generate_pin_code() (Loop until unique)
+        activate V
+        deactivate V
+        
+        V -> T : pin_code = pin
+        activate T
+        deactivate T
+        V -> T : status = 'waiting'
+        activate T
+        deactivate T
+        V -> T : save()
+        activate T
+            T -> DB : UPDATE tournament
+            activate DB
+            DB --> T : Success
+            deactivate DB
+        deactivate T
+        
+        V --> UI : Redirect to Waiting Lobby
+    deactivate V
+    UI --> H : Show Lobby with PIN
+    deactivate UI
+end
+
+group Start Tournament
+    H -> UI : Click "Start Tournament"
+    activate UI
+    UI -> V : POST /tournaments/{id}/start/
+    activate V
+        V -> T : matches.all().delete() (Clear old)
+        activate T
+        T -> DB : DELETE FROM tournaments_match
+        activate DB
+        DB --> T : Deleted
+        deactivate DB
+        deactivate T
+        
+        loop Create Round 1 Matches
+            V -> M : Match.objects.create(c1, c2, round=1)
+            activate M
+                M -> DB : INSERT tournaments_match
+                activate DB
+                DB --> M : Created
+                deactivate DB
+            deactivate M
+        end
+        
+        V -> T : status = 'open'
+        activate T
+        deactivate T
+        V -> T : current_round = 1
+        activate T
+        deactivate T
+        V -> T : save()
+        activate T
+            T -> DB : UPDATE tournament
+            activate DB
+            DB --> T : Success
+            deactivate DB
+        deactivate T
+        
+        V --> UI : Redirect to Play Page
+    deactivate V
+    UI --> H : Show Match Interface
+    deactivate UI
+end
+
+@enduml
+
+@startuml UC-08_Play_Vote
+
+skinparam defaultFontName "Tahoma"
+skinparam shadowing false
+skinparam backgroundColor White
+skinparam sequence {
+    ArrowColor #333333
+    LifeLineBorderColor #555555
+    ParticipantBackgroundColor #E8F5E9
+    ParticipantBorderColor #2E7D32
+    ActorBackgroundColor #E8F5E9
+    ActorBorderColor #2E7D32
+}
+
+title UC-08: Play & Vote (แข่งขันและโหวต)
+
+actor "Player" as P
+participant "PlayPage" as UI <<Template>>
+participant "AJAX (JS)" as JS <<Script>>
+participant "TournamentViews" as V <<View>>
+participant "MatchVote" as MV <<Model>>
+participant "Match" as M <<Model>>
+database "PostgreSQL" as DB
+
+== การส่งผลโหวต (Submit Vote) ==
+P -> UI : Click Vote Option (1 or 2)
+activate UI
+UI -> JS : fetch('/vote_submit/')
+activate JS
+    JS -> V : POST /vote_submit/{match_id}/
+    activate V
+        V -> MV : update_or_create(match, user)
+        activate MV
+            MV -> DB : SELECT ...
+            activate DB
+            DB --> MV : Result
+            deactivate DB
+            
+            alt Not Exists
+                MV -> DB : INSERT match_vote
+                activate DB
+                DB --> MV : Created
+                deactivate DB
+            else Exists
+                MV -> DB : UPDATE match_vote
+                activate DB
+                DB --> MV : Updated
+                deactivate DB
+            end
+        deactivate MV
+        V --> JS : JSON {success: true}
+    deactivate V
+    JS -> UI : Update UI (Highlight Selection)
+deactivate JS
+deactivate UI
+
+== การอัปเดตคะแนน (Polling Loop) ==
+loop Every 2 Seconds
+    JS -> V : GET /vote_update/{match_id}/
+    activate JS
+    activate V
+        V -> M : votes.filter(choice='1').count()
+        activate M
+        M -> DB : SELECT COUNT(*) ...
+        activate DB
+        DB --> M : Count 1
+        deactivate DB
+        deactivate M
+        
+        V -> M : votes.filter(choice='2').count()
+        activate M
+        M -> DB : SELECT COUNT(*) ...
+        activate DB
+        DB --> M : Count 2
+        deactivate DB
+        deactivate M
+        
+        V -> V : Check Time Remaining
+        activate V
+        
+        opt Time Expired (Auto-Finish)
+            V -> M : winner = max(votes)
+            activate M
+            deactivate M
+            V -> M : is_finished = True
+            activate M
+            deactivate M
+            V -> M : save()
+            activate M
+                M -> DB : UPDATE match
+                activate DB
+                DB --> M : Saved
+                deactivate DB
+            deactivate M
+        end
+        deactivate V
+        
+        V --> JS : JSON {votes, time, match_status}
+    deactivate V
+    JS -> UI : Update Progress Bars / Timer
+    deactivate JS
+end
+
+@enduml
+
+@startuml UC-09_Report_Issue
+
+skinparam defaultFontName "Tahoma"
+skinparam shadowing false
+skinparam backgroundColor White
+skinparam sequence {
+    ArrowColor #333333
+    LifeLineBorderColor #555555
+    ParticipantBackgroundColor #E8F5E9
+    ParticipantBorderColor #2E7D32
+    ActorBackgroundColor #E8F5E9
+    ActorBorderColor #2E7D32
+}
+
+title UC-09: Report Issue (รายงานปัญหา)
+
+actor "Member" as M
+participant "ReportModal" as UI <<Template>>
+participant "AJAX (JS)" as JS <<Script>>
+participant "AdminViews" as V <<View>>
+participant "Report" as R <<Model>>
+database "PostgreSQL" as DB
+
+M -> UI : Click "Flag" Icon & Submit Reason
+activate UI
+UI -> JS : submitReport()
+activate JS
+    JS -> V : POST /report/comment/{id}/
+    activate V
+        V -> R : objects.filter(reporter, target).exists()
+        activate R
+        R -> DB : SELECT 1 FROM custom_admin_report ...
+        activate DB
+        DB --> R : Boolean
+        deactivate DB
+        deactivate R
+        
+        alt Not Reported Yet
+            V -> R : create(reporter, reason, status='pending')
+            activate R
+                R -> DB : INSERT custom_admin_report
+                activate DB
+                DB --> R : Success
+                deactivate DB
+            deactivate R
+            V --> JS : JSON {success: true}
+        else Already Reported
+            V --> JS : JSON {success: false, error: 'Duplicate'}
+        end
+    deactivate V
+    JS -> UI : Show Toast "Report Submitted"
+deactivate JS
+deactivate UI
+
+@enduml
+
+@startuml UC-10_View_System_Stats
+
+skinparam defaultFontName "Tahoma"
+skinparam shadowing false
+skinparam backgroundColor White
+skinparam sequence {
+    ArrowColor #333333
+    LifeLineBorderColor #555555
+    ParticipantBackgroundColor #FCE4EC
+    ParticipantBorderColor #C62828
+    ActorBackgroundColor #FCE4EC
+    ActorBorderColor #C62828
+}
+
+title UC-10: View System Stats (ดูสถิติระบบ)
+
+actor "Admin" as A
+participant "DashboardPage" as UI <<Template>>
+participant "AdminViews" as V <<View>>
+participant "User" as U <<Model>>
+participant "Tournament" as T <<Model>>
+participant "MatchVote" as MV <<Model>>
+database "PostgreSQL" as DB
+
+A -> UI : Access /admin/dashboard/
+activate UI
+UI -> V : GET /admin/dashboard/
+activate V
+    V -> V : @admin_required check
+    activate V
+    deactivate V
+    
+    V -> U : objects.count()
+    activate U
+    U -> DB : SELECT COUNT(*) FROM auth_user
+    activate DB
+    DB --> U : Total Users
+    deactivate DB
+    deactivate U
+    
+    V -> T : objects.count()
+    activate T
+    T -> DB : SELECT COUNT(*) FROM tournament
+    activate DB
+    DB --> T : Total Tournaments
+    deactivate DB
+    deactivate T
+    
+    V -> MV : objects.count()
+    activate MV
+    MV -> DB : SELECT COUNT(*) FROM match_vote
+    activate DB
+    DB --> MV : Total Votes
+    deactivate DB
+    deactivate MV
+    
+    V --> UI : Render "dashboard.html" (Context)
+deactivate V
+UI --> A : Display Charts and Counters
+deactivate UI
+
+@enduml
+
+@startuml UC-11_Manage_Members
+
+skinparam defaultFontName "Tahoma"
+skinparam shadowing false
+skinparam backgroundColor White
+skinparam sequence {
+    ArrowColor #333333
+    LifeLineBorderColor #555555
+    ParticipantBackgroundColor #FCE4EC
+    ParticipantBorderColor #C62828
+    ActorBackgroundColor #FCE4EC
+    ActorBorderColor #C62828
+}
+
+title UC-11: Manage Members (จัดการสมาชิก - Ban)
+
+actor "Admin" as A
+participant "UserListPage" as UI <<Template>>
+participant "AdminViews" as V <<View>>
+participant "User" as U <<Model>>
+participant "AuditLog" as L <<Model>>
+database "PostgreSQL" as DB
+
+A -> UI : Click "Ban" Button
+activate UI
+UI -> V : POST /admin/users/{id}/ban/
+activate V
+    V -> U : get_object_or_404(pk)
+    activate U
+    U -> DB : SELECT ...
+    activate DB
+    DB --> U : User Obj
+    deactivate DB
+    deactivate U
+    
+    V -> U : is_active = False
+    activate U
+    deactivate U
+    V -> U : save()
+    activate U
+        U -> DB : UPDATE auth_user SET is_active=False
+        activate DB
+        DB --> U : Success
+        deactivate DB
+    deactivate U
+    
+    V -> L : create(action='BAN', details=...)
+    activate L
+        L -> DB : INSERT audit_log
+        activate DB
+        DB --> L : Log Created
+        deactivate DB
+    deactivate L
+    
+    V --> UI : Redirect to User List
+deactivate V
+UI --> A : Show User Status "Banned"
+deactivate UI
+
+@enduml
+
+@startuml UC-12_Moderation_Audit
+
+skinparam defaultFontName "Tahoma"
+skinparam shadowing false
+skinparam backgroundColor White
+skinparam sequence {
+    ArrowColor #333333
+    LifeLineBorderColor #555555
+    ParticipantBackgroundColor #FCE4EC
+    ParticipantBorderColor #C62828
+    ActorBackgroundColor #FCE4EC
+    ActorBorderColor #C62828
+}
+
+title UC-12: Moderation & Audit Logs (ตรวจสอบและจัดการรายงาน)
+
+actor "Admin" as A
+participant "ReportsPage" as UI <<Template>>
+participant "AdminViews" as V <<View>>
+participant "Report" as R <<Model>>
+participant "AuditLog" as L <<Model>>
+database "PostgreSQL" as DB
+
+A -> UI : Click "Resolve" Report
+activate UI
+UI -> V : POST /admin/reports/{id}/resolve/
+activate V
+    V -> R : get_object_or_404(pk)
+    activate R
+    R -> DB : SELECT ...
+    activate DB
+    DB --> R : Report Obj
+    deactivate DB
+    deactivate R
+    
+    V -> R : status = 'resolved'
+    activate R
+    deactivate R
+    V -> R : save()
+    activate R
+        R -> DB : UPDATE custom_admin_report
+        activate DB
+        DB --> R : Success
+        deactivate DB
+    deactivate R
+    
+    V -> L : create(action='RESOLVE_REPORT', details=...)
+    activate L
+        L -> DB : INSERT audit_log
+        activate DB
+        DB --> L : Log Created
+        deactivate DB
+    deactivate L
+    
+    V --> UI : Redirect / Reload
+deactivate V
+UI --> A : Show Updated Status
+deactivate UI
+
+@enduml

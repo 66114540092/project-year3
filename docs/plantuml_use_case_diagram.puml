@@ -1,0 +1,90 @@
+@startuml BattleHub_Correct_Logic
+
+' ตั้งค่าความสวยงาม
+skinparam defaultFontName "Tahoma"
+skinparam shadowing false
+skinparam usecase {
+    BackgroundColor White
+    BorderColor #333333
+    ArrowColor #333333
+    FontSize 14
+}
+skinparam actor {
+    BackgroundColor White
+    BorderColor #333333
+    FontSize 16
+}
+skinparam rectangle {
+    BackgroundColor White
+    BorderColor #333333
+    BorderStyle solid
+}
+
+left to right direction
+
+' Actors
+actor "Guest" as Guest
+actor "Member" as Member
+actor "Admin" as Admin
+
+' Inheritance
+Guest <|-- Member
+Member <|-- Admin
+
+rectangle "BattleHub System" {
+
+    ' ==========================================
+    ' Guest Use Cases (ใครๆ ก็ทำได้)
+    ' ==========================================
+    usecase "UC-01: สมัครและเข้าสู่ระบบ\n(Register & Login)" as UC01
+    usecase "UC-02: ค้นหาทัวร์นาเมนต์\n(Search Tournaments)" as UC02
+    usecase "UC-03: ดูผลการแข่งขัน\n(View Results)" as UC03 
+    ' ^ แยกออกมาเป็นอิสระ ไม่ผูกกับโหวตแล้ว
+
+    Guest --> UC01
+    Guest --> UC02
+    Guest --> UC03
+
+    ' ==========================================
+    ' Member Use Cases (ต้องล็อกอิน)
+    ' ==========================================
+    usecase "UC-04: จัดการข้อมูลส่วนตัว\n(Manage Profile)" as UC04
+    usecase "UC-05: จัดการทัวร์นาเมนต์ (CRUD)\n(Manage Tournaments)" as UC05
+    usecase "UC-06: จัดการผู้เข้าแข่งขัน (Import)\n(Manage Competitors)" as UC06
+    usecase "UC-07: จัดการห้องแข่ง Lobby (Host/Join)\n(Manage Lobby)" as UC07
+    usecase "UC-08: แข่งขันและโหวต (Real-time)\n(Play & Vote)" as UC08
+
+    Member --> UC04
+    Member --> UC05
+    Member --> UC07
+    Member --> UC08
+    
+    ' Member ดูผลได้ด้วย (สืบทอดจาก Guest แล้ว แต่ถ้าอยากให้ชัดเจน ลากเพิ่มก็ได้)
+    ' ในที่นี้ Guest <|-- Member ทำให้ Member ทำ UC-03 ได้อัตโนมัติครับ
+
+    ' ==========================================
+    ' ความสัมพันธ์ภายใน (Internal Logic)
+    ' ==========================================
+    
+    ' สร้างทัวร์ ต้องจัดการผู้เล่น (บังคับ)
+    UC05 ..> UC06 : <<include>>
+    
+    ' เข้า Lobby เพื่อไปโหวต (บังคับ)
+    UC07 ..> UC08 : <<include>>
+
+    ' ==========================================
+    ' Admin Use Cases (ดูแลระบบ)
+    ' ==========================================
+    usecase "UC-09: รายงานปัญหา\n(Report Issue)" as UC09
+    usecase "UC-10: ดูภาพรวมระบบ (Dashboard)\n(View System Stats)" as UC10
+    usecase "UC-11: จัดการสมาชิก (Ban/Unban)\n(Manage Members)" as UC11
+    usecase "UC-12: ดูแลความเรียบร้อย (Logs)\n(Moderation & Audit Logs)" as UC12
+
+    Member --> UC09
+
+    Admin --> UC10
+    Admin --> UC11
+    Admin --> UC12
+}
+
+@enduml

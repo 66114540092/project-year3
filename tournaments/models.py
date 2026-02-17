@@ -38,10 +38,16 @@ class Tournament(models.Model):
         ("other", "Other"),
     ]
 
+    LANGUAGE_CHOICES = [
+        ("th", "Thai"),
+        ("en", "English"),
+        ("all", "Universal / Global"),
+    ]
+
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     category = models.CharField(max_length=100, choices=CATEGORY_CHOICES, default="other")
-    language = models.CharField(max_length=50, blank=True)
+    language = models.CharField(max_length=10, choices=LANGUAGE_CHOICES, default="th")
     thumbnail = models.ImageField(upload_to="tournament_thumbnails/", blank=True, null=True)
 
     bracket_size = models.PositiveIntegerField(choices=BRACKET_SIZE_CHOICES, default=4)

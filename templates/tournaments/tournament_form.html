@@ -47,7 +47,36 @@
 
         <div class="bh-form-group">
           <label class="bh-label">Language</label>
-          {{ form.language }}
+          <div class="bh-dropdown" id="language-dropdown">
+            <button type="button" class="bh-dropdown-toggle" id="language-toggle">
+              Select language...
+            </button>
+            <div class="bh-dropdown-menu" id="language-menu">
+              {% for choice in form.language.field.choices %}
+              <div class="bh-dropdown-item {% if form.language.value == choice.0 %}selected{% endif %}"
+                data-value="{{ choice.0 }}">
+                {{ choice.1 }}
+              </div>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="language" id="language-input" value="{{ form.language.value|default:'th' }}">
+          </div>
+          <!-- Script to set initial label for language -->
+          <script>
+            document.addEventListener("DOMContentLoaded", function () {
+              const langInput = document.getElementById('language-input');
+              const langToggle = document.getElementById('language-toggle');
+              const langItems = document.querySelectorAll('#language-menu .bh-dropdown-item');
+              
+              const currentVal = langInput.value;
+              langItems.forEach(item => {
+                if (item.dataset.value === currentVal) {
+                   langToggle.textContent = item.textContent.trim();
+                   item.classList.add('selected');
+                }
+              });
+            });
+          </script>
         </div>
       </div>
 

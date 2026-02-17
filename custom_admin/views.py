@@ -7,7 +7,8 @@ from django.utils import timezone
 from django.core.paginator import Paginator
 
 # Import Models
-from tournaments.models import Tournament, MatchVote, MatchComment, Comment
+# Import Models
+from tournaments.models import Tournament, MatchVote, MatchComment, Comment, Match
 from accounts.models import Profile
 from .models import Report, AuditLog
 from django.views.decorators.http import require_POST
@@ -421,3 +422,60 @@ def admin_delete_tournament_comment(request, pk):
     comment.delete()
     
     return JsonResponse({'success': True})
+
+
+@admin_required
+@require_POST
+def admin_force_start_tournament(request, pk):
+    """Force start a tournament (admin action)"""
+    tournament = get_object_or_404(Tournament, pk=pk)
+    
+    if tournament.status != "waiting":
+        messages.error(request, "Tournament must be in 'Waiting' status to force start.")
+        return redirect("custom_admin:tournament_list")
+        
+    competitors = list(tournament.competitors.all())
+    # Check if we have enough competitors? Or just force it?
+    # Better to check, otherwise it crashes.
+    if len(competitors) < 2:
+         messages.error(request, "Not enough competitors to start. Need at least 2.")
+         return redirect("custom_admin:tournament_list")
+
+    # Reuse publish logic (simplified)
+    tournament.matches.all().delete()
+    round_number = 1
+    index = 1
+    
+    # Simple pairing
+    # If odd number, one might be left out? 
+    # Logic in publish_tournament uses range(0, len, 2)
+    # We should follow that.
+    
+    for i in range(0, len(competitors) - 1, 2):
+        c1 = competitors[i]
+        c2 = competitors[i + 1]
+        Match.objects.create(
+            tournament=tournament,
+            round_number=round_number,
+            index_in_round=index,
+            competitor1=c1,
+            competitor2=c2,
+            is_finished=False,
+        )
+        index += 1
+
+    tournament.status = "open"
+    tournament.current_round = 1
+    tournament.save()
+    
+    # Audit Log
+    AuditLog.objects.create(
+        user=request.user,
+        action='FORCE_START_TOURNAMENT',
+        target_model='Tournament',
+        details=f'Force started tournament #{pk}: {tournament.name}',
+        ip_address=request.META.get('REMOTE_ADDR')
+    )
+    
+    messages.success(request, f"Tournament '{tournament.name}' force started successfully.")
+    return redirect("custom_admin:tournament_list")

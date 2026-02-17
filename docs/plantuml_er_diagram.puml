@@ -1,0 +1,191 @@
+@startuml ER_Diagram
+
+' Hide the spot
+hide circle
+
+' Avoid problems with angled crows feet
+skinparam linetype ortho
+
+skinparam class {
+    BackgroundColor White
+    BorderColor #333333
+    ArrowColor #333333
+}
+
+' ============================================================
+'  Auth & Accounts
+' ============================================================
+
+entity "auth_user" as User {
+    *id : integer <<PK>>
+    --
+    username : varchar(150)
+    email : varchar(254)
+    password : varchar(128)
+    first_name : varchar(150)
+    last_name : varchar(150)
+    is_active : boolean
+    is_staff : boolean
+    is_superuser : boolean
+    date_joined : datetime
+    last_login : datetime
+}
+
+entity "accounts_profile" as Profile {
+    *id : integer <<PK>>
+    --
+    *user_id : integer <<FK>>
+    avatar : varchar(100)
+    bio : text
+    created_at : datetime
+    updated_at : datetime
+}
+
+' ============================================================
+'  Tournaments App
+' ============================================================
+
+entity "tournaments_tournament" as Tournament {
+    *id : integer <<PK>>
+    --
+    name : varchar(200)
+    description : text
+    category : varchar(100)
+    thumbnail : varchar(100)
+    bracket_size : integer
+    voting_duration_seconds : integer
+    language : varchar(10)
+    pin_code : varchar(6)
+    status : varchar(20)
+    current_round : integer
+    *created_by_id : integer <<FK>>
+    created_at : datetime
+    updated_at : datetime
+}
+
+entity "tournaments_competitor" as Competitor {
+    *id : integer <<PK>>
+    --
+    *tournament_id : integer <<FK>>
+    name : varchar(200)
+    image : varchar(100)
+    created_at : datetime
+}
+
+entity "tournaments_match" as Match {
+    *id : integer <<PK>>
+    --
+    *tournament_id : integer <<FK>>
+    round_number : integer
+    index_in_round : integer
+    *competitor1_id : integer <<FK>>
+    *competitor2_id : integer <<FK>>
+    winner_id : integer <<FK, Nullable>>
+    is_finished : boolean
+    started_at : datetime
+    created_at : datetime
+}
+
+entity "tournaments_matchvote" as MatchVote {
+    *id : integer <<PK>>
+    --
+    *match_id : integer <<FK>>
+    *user_id : integer <<FK>>
+    choice : varchar(2)
+    created_at : datetime
+}
+
+entity "tournaments_comment" as Comment {
+    *id : integer <<PK>>
+    --
+    *tournament_id : integer <<FK>>
+    *user_id : integer <<FK>>
+    text : text
+    created_at : datetime
+}
+
+entity "tournaments_matchcomment" as MatchComment {
+    *id : integer <<PK>>
+    --
+    *match_id : integer <<FK>>
+    *user_id : integer <<FK>>
+    text : varchar(200)
+    created_at : datetime
+}
+
+entity "tournaments_participant" as Participant {
+    *id : integer <<PK>>
+    --
+    *tournament_id : integer <<FK>>
+    user_id : integer <<FK, Nullable>>
+    nickname : varchar(50)
+    session_key : varchar(100)
+    joined_at : datetime
+}
+
+' ============================================================
+'  Custom Admin App
+' ============================================================
+
+entity "custom_admin_report" as Report {
+    *id : integer <<PK>>
+    --
+    *reporter_id : integer <<FK>>
+    reason : text
+    status : varchar(20)
+    target_user_id : integer <<FK, Nullable>>
+    target_tournament_id : integer <<FK, Nullable>>
+    target_match_comment_id : integer <<FK, Nullable>>
+    target_tournament_comment_id : integer <<FK, Nullable>>
+    admin_note : text
+    created_at : datetime
+    updated_at : datetime
+}
+
+entity "custom_admin_auditlog" as AuditLog {
+    *id : integer <<PK>>
+    --
+    *user_id : integer <<FK>>
+    action : varchar(50)
+    target_model : varchar(50)
+    details : text
+    ip_address : varchar(39)
+    created_at : datetime
+}
+
+' ============================================================
+'  Relationships (Crow's Foot Notation)
+' ============================================================
+
+' User 1 -- 1 Profile
+User ||..|| Profile
+
+' User 1 -- N Many
+User ||..o{ Tournament
+User ||..o{ MatchVote
+User ||..o{ Comment
+User ||..o{ MatchComment
+User ||..o{ Participant
+User ||..o{ Report
+User ||..o{ AuditLog
+
+' Tournament 1 -- N Many
+Tournament ||..|{ Competitor
+Tournament ||..|{ Match
+Tournament ||..o{ Comment
+Tournament ||..o{ Participant
+
+' Match 1 -- N Many
+Match ||..o{ MatchVote
+Match ||..o{ MatchComment
+
+' Competitor 1 -- N Match (Competing)
+Competitor }|..o{ Match
+
+' Report N -- 1 Target (Zero or One)
+Report }o..o| User
+Report }o..o| Tournament
+Report }o..o| Comment
+Report }o..o| MatchComment
+
+@enduml

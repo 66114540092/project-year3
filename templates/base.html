@@ -206,10 +206,15 @@
           <!-- User Dropdown -->
           <div class="user-dropdown ml-2">
             <button class="flex items-center gap-2 px-3 py-2 rounded-full bg-slate-800 hover:bg-slate-700 transition">
+              {% if user.profile.avatar %}
+              <img src="{{ user.profile.avatar.url }}" alt="{{ user.username }}"
+                class="w-7 h-7 rounded-full object-cover ring-2 ring-slate-800">
+              {% else %}
               <div
-                class="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                class="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center ring-2 ring-slate-800">
                 <i class="fas fa-user text-white text-xs"></i>
               </div>
+              {% endif %}
               <span class="text-sm text-gray-300">{{ user.username }}</span>
               <i class="fas fa-chevron-down text-xs text-gray-500"></i>
             </button>

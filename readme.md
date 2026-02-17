@@ -76,6 +76,7 @@ grok http 8000
 # or
 ngrok http 80   # for Docker/nginx
 ```
+## docker compose exec web python manage.py collectstatic --noinput (สำหรับrefresh web css)
 
 ##  Important Files
 

@@ -165,7 +165,7 @@ body {
   position: relative;
   overflow: hidden;
 }
-
+  
 .bh-btn::before {
   content: '';
   position: absolute;
@@ -247,7 +247,6 @@ body {
   box-shadow: var(--shadow-soft);
   transition: var(--transition-smooth);
   position: relative;
-  overflow: hidden;
 }
 
 .bh-card::before {
@@ -594,7 +593,7 @@ body {
   border-radius: 0.7rem;
   max-height: 200px;
   overflow-y: auto;
-  z-index: 100;
+  z-index: 1000;
   display: none;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }

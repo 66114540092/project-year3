@@ -11,6 +11,7 @@ urlpatterns = [
     # Tournament Management
     path('tournaments/', views.admin_tournament_list, name='tournament_list'),
     path('tournaments/<int:pk>/delete/', views.admin_delete_tournament, name='delete_tournament'),
+    path('tournaments/<int:pk>/force-start/', views.admin_force_start_tournament, name='force_start_tournament'),
     path('tournaments/<int:pk>/force-finish/', views.admin_force_finish_tournament, name='force_finish_tournament'),
     
     # User Management

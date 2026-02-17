@@ -27,10 +27,20 @@ def profile_view(request):
     profile, created = Profile.objects.get_or_create(user=request.user)
     
     user_tournaments = Tournament.objects.filter(created_by=request.user).order_by('-created_at')[:6]
+    # Stats
+    from tournaments.models import Tournament, Participant, MatchVote
+    
+    total_created = Tournament.objects.filter(created_by=request.user).count()
+    total_participants = Participant.objects.filter(tournament__created_by=request.user).count()
+    total_votes = MatchVote.objects.filter(match__tournament__created_by=request.user).count()
+
     return render(request, "accounts/profile.html", {
         "profile_user": request.user,
         "profile": profile,
         "user_tournaments": user_tournaments,
+        "total_created": total_created,
+        "total_participants": total_participants,
+        "total_votes": total_votes,
     })
 
 

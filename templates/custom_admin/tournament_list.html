@@ -159,6 +159,17 @@
                                 title="View Tournament">
                                 <i class="fa-solid fa-eye"></i>
                             </a>
+                            {% if tournament.status == 'waiting' %}
+                            <form action="{% url 'custom_admin:force_start_tournament' tournament.pk %}" method="post"
+                                class="inline">
+                                {% csrf_token %}
+                                <button type="submit"
+                                    class="p-2 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
+                                    title="Force Start" onclick="return confirm('Force start this tournament?')">
+                                    <i class="fa-solid fa-play"></i>
+                                </button>
+                            </form>
+                            {% endif %}
                             {% if tournament.status == 'open' %}
                             <form action="{% url 'custom_admin:force_finish_tournament' tournament.pk %}" method="post"
                                 class="inline">

@@ -1,0 +1,48 @@
+@startuml BattleHub_Architecture_Fixed
+
+!theme vibrant
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam componentStyle uml2
+
+title BattleHub - System Architecture Diagram
+
+package "Client Layer" {
+    component "Web Browser" as Browser
+    note right of Browser
+        **Frontend Technologies:**
+        - HTML5 / CSS3 (Tailwind)
+        - JavaScript (AJAX Logic)
+        - Polling Mechanism (Real-time)
+    end note
+}
+
+package "Server Layer (Docker Host)" #GhostWhite {
+    
+    node "Docker Container: Web" #HoneyDew {
+        component "Nginx\n(Reverse Proxy)" as Nginx
+        component "Gunicorn\n(WSGI Server)" as Gunicorn
+        
+        package "Django Framework" as Django {
+            component "Apps: Accounts, Tournaments, Admin" as Apps
+        }
+    }
+}
+
+package "Data Layer" #Ivory {
+    database "PostgreSQL\n(Docker Container)" as DB
+    storage "Media/Static Volume\n(Docker Shared)" as Storage
+}
+
+' เส้นการเชื่อมต่อแบบเป็นระเบียบ
+interface "HTTP/HTTPS" as HTTP_HTTPS
+
+Browser --( HTTP_HTTPS : "AJAX Requests (JSON)"
+HTTP_HTTPS --> Nginx
+Nginx --> Gunicorn : "Proxy Pass"
+Gunicorn --> Apps : "WSGI Exec"
+
+Apps --> Storage : "File I/O (Uploads/Avatars)"
+Apps --> DB : "TCP/IP Port 5432 (Data Auth)"
+
+@enduml

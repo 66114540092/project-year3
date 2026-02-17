@@ -40,7 +40,12 @@ def tournament_list(request):
     if selected_tag:
         tournaments = tournaments.filter(category=selected_tag)
 
-    # 4. Get Categories from Model Choices (consistent with create form)
+    # 4. Filter by Language
+    selected_language = request.GET.get("language", "")
+    if selected_language:
+        tournaments = tournaments.filter(language=selected_language)
+
+    # 5. Get Categories from Model Choices (consistent with create form)
     all_tags = []
     for value, label in Tournament.CATEGORY_CHOICES:
         all_tags.append({
@@ -49,7 +54,7 @@ def tournament_list(request):
             'is_selected': (value == selected_tag)
         })
 
-    # 5. Pagination
+    # 6. Pagination
     paginator = Paginator(tournaments, 12)  # 12 items per page
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
@@ -61,6 +66,8 @@ def tournament_list(request):
         "search_query": search_query,
         "selected_tag": selected_tag,
         "selected_status": selected_status,
+        "selected_language": selected_language,
+        "language_choices": Tournament.LANGUAGE_CHOICES,
         # Status choices for template loop (avoiding == in template)
         "status_choices": [
             {"value": "draft", "label": "📝 Draft", "is_selected": selected_status == "draft"},

@@ -37,11 +37,11 @@
         </div>
     </div>
 
-    <!-- Stats Cards -->
+    <!-- Stats Cards (Creator Stats) -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 text-center">
             <div class="text-3xl font-bold text-blue-400 mb-2">
-                {{ user_tournaments.count }}
+                {{ total_created }}
             </div>
             <div class="text-gray-400 text-sm">
                 <i class="fas fa-trophy mr-1"></i>Tournaments Created
@@ -50,19 +50,19 @@
 
         <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 text-center">
             <div class="text-3xl font-bold text-green-400 mb-2">
-                {{ profile_user.match_votes.count }}
+                {{ total_participants }}
             </div>
             <div class="text-gray-400 text-sm">
-                <i class="fas fa-vote-yea mr-1"></i>Votes Cast
+                <i class="fas fa-users mr-1"></i>Total Participants
             </div>
         </div>
 
         <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 text-center">
             <div class="text-3xl font-bold text-purple-400 mb-2">
-                {% if profile_user.is_staff %}Admin{% else %}Member{% endif %}
+                {{ total_votes }}
             </div>
             <div class="text-gray-400 text-sm">
-                <i class="fas fa-user-tag mr-1"></i>Account Type
+                <i class="fas fa-vote-yea mr-1"></i>votes Received
             </div>
         </div>
     </div>
